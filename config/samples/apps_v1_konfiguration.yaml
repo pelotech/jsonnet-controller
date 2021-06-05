@@ -1,0 +1,7 @@
+apiVersion: apps.kubecfg.io/v1
+kind: Konfiguration
+metadata:
+  name: konfiguration-sample
+spec:
+  # Add fields here
+  foo: bar

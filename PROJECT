@@ -1,0 +1,16 @@
+domain: kubecfg.io
+layout:
+- go.kubebuilder.io/v3
+projectName: kubecfg-operator
+repo: github.com/tinyzimmer/kubecfg-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: kubecfg.io
+  group: apps
+  kind: Konfiguration
+  path: github.com/tinyzimmer/kubecfg-operator/api/v1
+  version: v1
+version: "3"
