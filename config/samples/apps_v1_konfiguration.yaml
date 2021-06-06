@@ -3,5 +3,5 @@ kind: Konfiguration
 metadata:
   name: konfiguration-sample
 spec:
-  # Add fields here
-  foo: bar
+  interval: 30s
+  prune: false

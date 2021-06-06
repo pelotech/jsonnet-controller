@@ -40,12 +40,12 @@ type KonfigurationSpec struct {
 	// +optional
 	// KubeConfig *KubeConfig `json:"kubeConfig,omitempty"`
 
-	// Path to the jsonnet, json, or yaml that should be applied to the cluster.
+	// Paths to the jsonnet, json, or yaml that should be applied to the cluster.
 	// Defaults to 'None', which translates to the root path of the SourceRef.
 	// When declared as a file path it is assumed to be from the root path of the SourceRef.
 	// You may also define a HTTP(S) link to fetch files from a remote location.
-	// +optional
-	Path string `json:"path,omitempty"`
+	// +required
+	Paths []string `json:"path"`
 
 	// Variables to use when invoking kubecfg to render manifests.
 	// +optional
@@ -64,7 +64,7 @@ type KonfigurationSpec struct {
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
 
-	// Timeout for validation, apply and (soon) health checking operations.
+	// Timeout for diff, validation, apply, and (soon) health checking operations.
 	// Defaults to 'Interval' duration.
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
@@ -77,6 +77,14 @@ type KonfigurationSpec struct {
 	// +kubebuilder:default:=true
 	// +optional
 	Validate bool `json:"validate,omitempty"`
+
+	// Strategy to use when performing diffs against the current state of the
+	// cluster. Options are `all`, `subset`, or `last-applied`. Defaults to
+	// `subset`.
+	// +kubebuilder:default:=subset
+	// +kubebuilder:validation:Enum=all;subset;last-applied
+	// +optional
+	DiffStrategy string `json:"diffStrategy,omitempty"`
 
 	// Force instructs the controller to recreate resources
 	// when patching fails due to an immutable field change.

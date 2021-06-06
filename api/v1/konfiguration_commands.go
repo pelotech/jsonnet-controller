@@ -1,7 +1,7 @@
 package v1
 
 func (k *Konfiguration) newArgs(cmd string) []string {
-	args := []string{cmd}
+	args := []string{cmd, "--namespace", k.GetNamespace()}
 
 	// Add any global arguments provided by the user.
 	if globalArgs := k.GetKubecfgArgs(); len(globalArgs) != 0 {
@@ -13,7 +13,7 @@ func (k *Konfiguration) newArgs(cmd string) []string {
 
 // ToUpdateArgs converts this Konfiguration schema into kubecfg update
 // arguments.
-func (k *Konfiguration) ToUpdateArgs() []string {
+func (k *Konfiguration) ToUpdateArgs(dryRun bool) []string {
 	args := k.newArgs("update")
 
 	// Check if we are adding garbage collection flags.
@@ -31,8 +31,24 @@ func (k *Konfiguration) ToUpdateArgs() []string {
 		args = vars.AppendToArgs(args)
 	}
 
-	// Finally add the path
-	args = append(args, k.GetPath())
+	if dryRun {
+		args = append(args, "--dry-run")
+	}
 
+	// Finally add the path
+	args = append(args, k.GetPaths()...)
+
+	return args
+}
+
+// ToDiffArgs converts this Konfiguration schema into kubecfg diff arguments.
+func (k *Konfiguration) ToDiffArgs() []string {
+	args := k.newArgs("diff")
+	// Check if defining external or top-level arguments.
+	if vars := k.GetVariables(); vars != nil {
+		args = vars.AppendToArgs(args)
+	}
+	// Append the diff strategy
+	args = append(args, []string{"--diff-strategy", k.GetDiffStrategy()}...)
 	return args
 }

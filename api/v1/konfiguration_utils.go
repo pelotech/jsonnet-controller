@@ -58,7 +58,7 @@ func (k *KubeConfig) Fetch(ctx context.Context, c client.Client, namespace strin
 }
 
 // GetPath returns the Path to the jsonnet, json, or yaml to evaluate.
-func (k *Konfiguration) GetPath() string { return k.Spec.Path }
+func (k *Konfiguration) GetPaths() []string { return k.Spec.Paths }
 
 // GetVariables returns the external and top level arguments to pass to kubecfg.
 func (k *Konfiguration) GetVariables() *Variables {
@@ -95,6 +95,9 @@ func (k *Konfiguration) ValidateEnabled() bool { return k.Spec.Validate }
 // IsSuspended returns whether the controller should not apply any manifests
 // at the moment.
 func (k *Konfiguration) IsSuspended() bool { return k.Spec.Suspend }
+
+// GetDiffStrategy retrieves the diff strategy to use.
+func (k *Konfiguration) GetDiffStrategy() string { return k.Spec.DiffStrategy }
 
 // ForceCreate returns whether the controller should force recreating resources
 // when patching fails due to an immutable field change.

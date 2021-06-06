@@ -47,9 +47,9 @@ type KonfigurationReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	reqLogger := log.FromContext(ctx)
+	reqLogger := log.FromContext(ctx).WithValues("Request", req.NamespacedName)
 
-	reqLogger.Info("Reconciling konfiguration", "Request", req)
+	reqLogger.Info("Reconciling konfiguration")
 
 	konfig := &appsv1.Konfiguration{}
 	if err := r.Client.Get(ctx, req.NamespacedName, konfig); err != nil {
@@ -63,7 +63,41 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Do reconciliation
 
-	return ctrl.Result{}, nil
+	// Run a diff first to determine if any actions are necessary
+	updateRequired, err := runKubecfgDiff(ctx, reqLogger, konfig)
+	if err != nil {
+		return ctrl.Result{
+			RequeueAfter: konfig.GetRetryInterval().Duration,
+		}, err
+	}
+
+	// If no update required, check on the next interval.
+	// TODO: check status
+	if !updateRequired {
+		return ctrl.Result{
+			RequeueAfter: konfig.GetInterval().Duration,
+		}, nil
+	}
+
+	// Run a dry-run
+	if err := runKubecfgUpdate(ctx, reqLogger, konfig, true); err != nil {
+		return ctrl.Result{
+			RequeueAfter: konfig.GetRetryInterval().Duration,
+		}, err
+	}
+
+	// Run an update
+	if err := runKubecfgUpdate(ctx, reqLogger, konfig, false); err != nil {
+		return ctrl.Result{
+			RequeueAfter: konfig.GetRetryInterval().Duration,
+		}, err
+	}
+
+	// TODO: Update status
+
+	return ctrl.Result{
+		RequeueAfter: konfig.GetInterval().Duration,
+	}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
