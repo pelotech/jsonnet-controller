@@ -1,5 +1,7 @@
 package v1
 
+import "fmt"
+
 func (k *Konfiguration) newArgs(cmd string) []string {
 	args := []string{cmd, "--cache-dir", "/cache", "--namespace", k.GetNamespace()}
 
@@ -18,7 +20,8 @@ func (k *Konfiguration) ToUpdateArgs(dryRun bool) []string {
 
 	// Check if we are adding garbage collection flags.
 	if k.GCEnabled() {
-		args = append(args, []string{"--gc-tag", k.GetClusterName()}...)
+		gcTag := fmt.Sprintf("%s_%s", k.GetNamespace(), k.GetName())
+		args = append(args, []string{"--gc-tag", gcTag}...)
 	}
 
 	// Check if disabling validation.

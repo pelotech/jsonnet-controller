@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 
 	"github.com/go-logr/logr"
 	appsv1 "github.com/tinyzimmer/kubecfg-operator/api/v1"
@@ -63,10 +65,27 @@ func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfi
 			return err
 		}
 		log.Info(fmt.Sprintf("Process exited with a non-zero status of %d", exitErr.ProcessState.ExitCode()))
-		log.Info("Error executing command", "Stdout", stdoutBuf.String(), "Stderr", stderrBuf.String())
+		log.Info("Error executing command", "Stdout", stdoutBuf.String(), "Stderr", sanitizeStderr(&stderrBuf))
 		return exitErr
 	}
 
-	log.Info("Process completed successfully", "Stdout", stdoutBuf.String(), "Stderr", stderrBuf.String())
+	log.Info("Process completed successfully", "Stdout", stdoutBuf.String(), "Stderr", sanitizeStderr(&stderrBuf))
 	return nil
+}
+
+func sanitizeStderr(buf *bytes.Buffer) string {
+	scanner := bufio.NewScanner(buf)
+	lines := make([]string, 0)
+	for scanner.Scan() {
+		text := scanner.Text()
+		if text == "" {
+			continue
+		}
+		// warnings generated when pruning is enabled are too much...
+		if strings.Contains(text, "warnings.go") {
+			continue
+		}
+		lines = append(lines, text)
+	}
+	return strings.Join(lines, "\n")
 }

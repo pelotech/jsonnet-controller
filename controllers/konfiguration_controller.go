@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/fluxcd/pkg/runtime/predicates"
+	"github.com/go-logr/logr"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -62,35 +63,11 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Do reconciliation
-
-	// Run a diff first to determine if any actions are necessary
-	updateRequired, err := runKubecfgDiff(ctx, reqLogger, konfig)
-	if err != nil {
+	if err := r.reconcile(ctx, reqLogger, konfig); err != nil {
+		reqLogger.Error(err, "Error during reconciliation")
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval().Duration,
-		}, err
-	}
-
-	// If no update required, check on the next interval.
-	// TODO: check status
-	if !updateRequired {
-		return ctrl.Result{
-			RequeueAfter: konfig.GetInterval().Duration,
 		}, nil
-	}
-
-	// Run a dry-run
-	if err := runKubecfgUpdate(ctx, reqLogger, konfig, true); err != nil {
-		return ctrl.Result{
-			RequeueAfter: konfig.GetRetryInterval().Duration,
-		}, err
-	}
-
-	// Run an update
-	if err := runKubecfgUpdate(ctx, reqLogger, konfig, false); err != nil {
-		return ctrl.Result{
-			RequeueAfter: konfig.GetRetryInterval().Duration,
-		}, err
 	}
 
 	// TODO: Update status
@@ -98,6 +75,32 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return ctrl.Result{
 		RequeueAfter: konfig.GetInterval().Duration,
 	}, nil
+}
+
+func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration) error {
+	// Run a diff first to determine if any actions are necessary
+	updateRequired, err := runKubecfgDiff(ctx, reqLogger, konfig)
+	if err != nil {
+		return err
+	}
+
+	// If no update required, check on the next interval.
+	// TODO: check status
+	if !updateRequired {
+		return nil
+	}
+
+	// Run a dry-run
+	if err := runKubecfgUpdate(ctx, reqLogger, konfig, true); err != nil {
+		return err
+	}
+
+	// Run an update
+	if err := runKubecfgUpdate(ctx, reqLogger, konfig, false); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -55,7 +55,8 @@ type KonfigurationSpec struct {
 	// // +optional
 	// SourceRef *CrossNamespaceSourceReference `json:"sourceRef"`
 
-	// Prune enables garbage collection.
+	// Prune enables garbage collection. Note that this makes commands take
+	// considerably longer, so you may want to adjust your timeouts accordingly.
 	// +required
 	Prune bool `json:"prune"`
 
