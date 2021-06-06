@@ -113,7 +113,6 @@ func (in *KonfigurationSpec) DeepCopyInto(out *KonfigurationSpec) {
 		*out = new(KubeConfig)
 		**out = **in
 	}
-	out.SourceRef = in.SourceRef
 	if in.PostBuild != nil {
 		in, out := &in.PostBuild, &out.PostBuild
 		*out = new(PostBuild)
