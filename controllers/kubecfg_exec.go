@@ -67,6 +67,6 @@ func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfi
 		return exitErr
 	}
 
-	log.Info("Process completed successfully", "Stdout", stdoutBuf.String())
+	log.Info("Process completed successfully", "Stdout", stdoutBuf.String(), "Stderr", stderrBuf.String())
 	return nil
 }

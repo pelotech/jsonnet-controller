@@ -1,7 +1,7 @@
 package v1
 
 func (k *Konfiguration) newArgs(cmd string) []string {
-	args := []string{cmd, "--namespace", k.GetNamespace()}
+	args := []string{cmd, "--cache-dir", "/cache", "--namespace", k.GetNamespace()}
 
 	// Add any global arguments provided by the user.
 	if globalArgs := k.GetKubecfgArgs(); len(globalArgs) != 0 {

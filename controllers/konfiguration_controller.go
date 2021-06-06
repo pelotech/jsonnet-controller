@@ -47,7 +47,7 @@ type KonfigurationReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	reqLogger := log.FromContext(ctx).WithValues("Request", req.NamespacedName)
+	reqLogger := log.FromContext(ctx)
 
 	reqLogger.Info("Reconciling konfiguration")
 
