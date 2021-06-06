@@ -62,6 +62,12 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
+	if konfig.IsSuspended() {
+		return ctrl.Result{
+			RequeueAfter: konfig.GetInterval().Duration,
+		}, nil
+	}
+
 	// Do reconciliation
 	if err := r.reconcile(ctx, reqLogger, konfig); err != nil {
 		reqLogger.Error(err, "Error during reconciliation")
