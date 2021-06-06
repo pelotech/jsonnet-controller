@@ -19,10 +19,14 @@ package controllers
 import (
 	"context"
 
+	"github.com/fluxcd/pkg/runtime/predicates"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	appsv1 "github.com/tinyzimmer/kubecfg-operator/api/v1"
 )
@@ -39,17 +43,25 @@ type KonfigurationReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Konfiguration object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	reqLogger := log.FromContext(ctx)
 
-	// your logic here
+	reqLogger.Info("Reconciling konfiguration", "Request", req)
+
+	konfig := &appsv1.Konfiguration{}
+	if err := r.Client.Get(ctx, req.NamespacedName, konfig); err != nil {
+		// Check if object was deleted
+		// TODO: Optional ownership of created resources?
+		if client.IgnoreNotFound(err) == nil {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	// Do reconciliation
 
 	return ctrl.Result{}, nil
 }
@@ -57,6 +69,8 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // SetupWithManager sets up the controller with the Manager.
 func (r *KonfigurationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appsv1.Konfiguration{}).
+		For(&appsv1.Konfiguration{}, builder.WithPredicates(
+			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
+		)).
 		Complete(r)
 }
