@@ -24,6 +24,7 @@ local kube = import 'https://github.com/bitnami-labs/kube-libsonnet/raw/v1.14.6/
                         app: kube.Container('app') {
                             image: 'containous/whoami',
                             imagePullPolicy: 'IfNotPresent',
+                            securityContext: { runAsUser: 1000 },
                             args: [
                                 '--port=' + port,
                                 '--name=' + name,
