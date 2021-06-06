@@ -1,9 +1,9 @@
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os/exec"
 
 	"github.com/go-logr/logr"
@@ -32,6 +32,7 @@ func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfigu
 
 	// 10 signifies clean diff with update required
 	if exitErr.ProcessState.ExitCode() == 10 {
+		log.Info("Diff compare exited 10 - Update required")
 		return true, nil
 	}
 
@@ -44,30 +45,28 @@ func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfi
 
 	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToUpdateArgs(dryRun)...)
 
-	// capture full stderr
-	errPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return err
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+
+	if dryRun {
+		log.Info("Runing kubecfg dry-run update", "Command", cmd.String())
+	} else {
+		log.Info("Runing kubecfg update", "Command", cmd.String())
 	}
-	defer errPipe.Close()
 
-	log.Info("Runing kubecfg update", "DryRun", dryRun, "Command", cmd.String())
+	err := cmd.Run()
 
-	out, err := cmd.Output()
 	if err != nil {
 		exitErr, ok := err.(*exec.ExitError)
 		if !ok {
 			return err
 		}
 		log.Info(fmt.Sprintf("Process exited with a non-zero status of %d", exitErr.ProcessState.ExitCode()))
-		stderr, err := ioutil.ReadAll(errPipe)
-		if err != nil {
-			return err
-		}
-		log.Info("Error executing command", "Stdout", out, "Stderr", string(stderr))
+		log.Info("Error executing command", "Stdout", stdoutBuf.String(), "Stderr", stderrBuf.String())
 		return exitErr
 	}
 
-	log.Info("Process completed successfully", "Stdout", out)
+	log.Info("Process completed successfully", "Stdout", stdoutBuf.String())
 	return nil
 }

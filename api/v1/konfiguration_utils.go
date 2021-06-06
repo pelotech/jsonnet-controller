@@ -68,13 +68,13 @@ func (k *Konfiguration) GetVariables() *Variables {
 // AppendToArgs formats the configured variables to kubecfg command line arguments.
 func (v *Variables) AppendToArgs(args []string) []string {
 	for k, v := range v.ExtStr {
-		args = append(args, []string{"--ext-str", fmt.Sprintf("%s=%q", k, v)}...)
+		args = append(args, []string{"--ext-str", fmt.Sprintf("%s=%s", k, v)}...)
 	}
 	for k, v := range v.ExtCode {
 		args = append(args, []string{"--ext-code", fmt.Sprintf("%s=%s", k, v)}...)
 	}
 	for k, v := range v.TLAStr {
-		args = append(args, []string{"--tla-str", fmt.Sprintf("%s=%q", k, v)}...)
+		args = append(args, []string{"--tla-str", fmt.Sprintf("%s=%s", k, v)}...)
 	}
 	for k, v := range v.TLACode {
 		args = append(args, []string{"--tla-code", fmt.Sprintf("%s=%s", k, v)}...)
