@@ -62,7 +62,7 @@ spec:
                 items:
                   type: string
                 type: array
-              path:
+              paths:
                 description: Paths to the jsonnet, json, or yaml that should be applied
                   to the cluster. Defaults to 'None', which translates to the root
                   path of the SourceRef. When declared as a file path it is assumed

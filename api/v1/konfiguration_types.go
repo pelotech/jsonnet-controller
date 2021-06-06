@@ -45,7 +45,7 @@ type KonfigurationSpec struct {
 	// When declared as a file path it is assumed to be from the root path of the SourceRef.
 	// You may also define a HTTP(S) link to fetch files from a remote location.
 	// +required
-	Paths []string `json:"path"`
+	Paths []string `json:"paths"`
 
 	// Variables to use when invoking kubecfg to render manifests.
 	// +optional

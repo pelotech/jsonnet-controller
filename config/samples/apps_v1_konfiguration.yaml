@@ -4,4 +4,14 @@ metadata:
   name: konfiguration-sample
 spec:
   interval: 30s
-  prune: false
+  prune: true
+  paths:
+    - https://github.com/tinyzimmer/kubecfg-operator/raw/main/config/jsonnet/whoami.jsonnet
+  variables:
+    # Code must be used for integers, booleans, and complex types.
+    # Even though it is a string field, it is utilized as raw jsonnet
+    # code.
+    extCode:
+      port: '8080'
+    extStr:
+      name: 'hello-world'
