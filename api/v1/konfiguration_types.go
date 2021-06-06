@@ -21,6 +21,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Validation represents a type of validation to perform
+type Validation string
+
+const (
+	// Perform no validation
+	ValidationNone Validation = "none"
+	// Client-side validation
+	ValidationClient Validation = "client"
+	// Server-side validation
+	ValidationServer Validation = "server"
+)
+
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // KonfigurationSpec defines the desired state of Konfiguration
@@ -46,6 +58,10 @@ type KonfigurationSpec struct {
 	// You may also define a HTTP(S) link to fetch files from a remote location.
 	// +optional
 	Path string `json:"path,omitempty"`
+
+	// Variables to use when invoking kubecfg to render manifests.
+	// +optional
+	Variables *Variables `json:"variables,omitempty"`
 
 	// // Reference of the source where the jsonnet, json, or yaml file is.
 	// // +required
@@ -86,18 +102,6 @@ type KonfigurationSpec struct {
 	Force bool `json:"force,omitempty"`
 }
 
-// Validation represents a type of validation to perform
-type Validation string
-
-const (
-	// Perform no validation
-	ValidationNone Validation = "none"
-	// Client-side validation
-	ValidationClient Validation = "client"
-	// Server-side validation
-	ValidationServer Validation = "server"
-)
-
 // KubeConfig holds the configuration for where to fetch the contents of a
 // kubeconfig file.
 type KubeConfig struct {
@@ -111,6 +115,22 @@ type KubeConfig struct {
 	// the Konfiguration.
 	// +required
 	SecretRef corev1.LocalObjectReference `json:"secretRef,omitempty"`
+}
+
+// Variables describe code/strings for external variables and top-level arguments.
+type Variables struct {
+	// Values of external variables with string values.
+	// +optional
+	ExtStr map[string]string `json:"extStr,omitempty"`
+	// Values of external variables with values supplied as Jsonnet code.
+	// +optional
+	ExtCode map[string]string `json:"extCode,omitempty"`
+	// Values of top level arguments with string values.
+	// +optional
+	TLAStr map[string]string `json:"tlaStr,omitempty"`
+	// Values of top level arguments with values supplied as Jsonnet code.
+	// +optional
+	TLACode map[string]string `json:"tlaCode,omitempty"`
 }
 
 // PostBuild describes which actions to perform on the YAML manifest

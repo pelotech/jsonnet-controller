@@ -123,6 +123,32 @@ spec:
                 - client
                 - server
                 type: string
+              variables:
+                description: Variables to use when invoking kubecfg to render manifests.
+                properties:
+                  extCode:
+                    additionalProperties:
+                      type: string
+                    description: Values of external variables with values supplied
+                      as Jsonnet code.
+                    type: object
+                  extStr:
+                    additionalProperties:
+                      type: string
+                    description: Values of external variables with string values.
+                    type: object
+                  tlaCode:
+                    additionalProperties:
+                      type: string
+                    description: Values of top level arguments with values supplied
+                      as Jsonnet code.
+                    type: object
+                  tlaStr:
+                    additionalProperties:
+                      type: string
+                    description: Values of top level arguments with string values.
+                    type: object
+                type: object
             required:
             - interval
             - prune
