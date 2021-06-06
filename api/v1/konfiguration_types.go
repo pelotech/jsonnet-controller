@@ -77,7 +77,7 @@ type KonfigurationSpec struct {
 	// 'server' because server-side validation is not supported in this scenario.
 	// +kubebuilder:validation:Enum=none;client;server
 	// +optional
-	Validation string `json:"validation,omitempty"`
+	Validation Validation `json:"validation,omitempty"`
 
 	// Force instructs the controller to recreate resources
 	// when patching fails due to an immutable field change.
@@ -98,6 +98,8 @@ const (
 	ValidationServer Validation = "server"
 )
 
+// KubeConfig holds the configuration for where to fetch the contents of a
+// kubeconfig file.
 type KubeConfig struct {
 	// SecretRef holds the name to a secret that contains a 'value' key with
 	// the kubeconfig file as the value. It must be in the same namespace as
