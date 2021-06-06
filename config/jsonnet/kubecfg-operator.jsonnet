@@ -146,8 +146,8 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
                                 periodSeconds: 10
                             },
                             resources: {
-                                limits: { cpu: '100m', memory: '30Mi' },
-                                requests: { cpu: '100m', memory: '20Mi' },
+                                limits: { cpu: '100m', memory: '128Mi' },
+                                requests: { cpu: '100m', memory: '64Mi' },
                             },
                         },
                     },

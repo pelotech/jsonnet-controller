@@ -8,10 +8,10 @@ spec:
   paths:
     - https://github.com/tinyzimmer/kubecfg-operator/raw/main/config/jsonnet/whoami.jsonnet
   variables:
+    extStr:
+      name: 'hello-world'
     # Code must be used for integers, booleans, and complex types.
     # Even though it is a string field, it is utilized as raw jsonnet
     # code.
     extCode:
       port: '8080'
-    extStr:
-      name: 'hello-world'

@@ -35,7 +35,7 @@ func (k *Konfiguration) ToUpdateArgs(dryRun bool) []string {
 		args = append(args, "--dry-run")
 	}
 
-	// Finally add the path
+	// Finally add the paths
 	args = append(args, k.GetPaths()...)
 
 	return args
@@ -50,5 +50,7 @@ func (k *Konfiguration) ToDiffArgs() []string {
 	}
 	// Append the diff strategy
 	args = append(args, []string{"--diff-strategy", k.GetDiffStrategy()}...)
+	// Finally add the paths
+	args = append(args, k.GetPaths()...)
 	return args
 }
