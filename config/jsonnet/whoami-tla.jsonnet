@@ -2,31 +2,32 @@
 // with external variables.
 local kube = import 'https://github.com/bitnami-labs/kube-libsonnet/raw/v1.14.6/kube.libsonnet';
 
-function(name, port=8080, labels={}){
+function(
+    name, 
+    port=8080,
+    user=1000,
+    image='containous/whoami',
+    pullPolicy='IfNotPresent') {
     local this = self,
 
-    app_labels:: { app: 'whoami' },
-    all_labels:: this.app_labels + labels,
+    labels:: { app: 'whoami' },
 
     deployment: kube.Deployment('whoami-deployment') {
         local deployment = self,
         metadata+: {
-            labels: this.all_labels,
+            labels: this.labels,
         },
         spec+: {
             replicas: 1,
-            selector: {
-                matchLabels: this.app_labels,
-            },
             template+: {
-                metadata+: { labels: this.app_labels },
+                metadata+: { labels: this.labels },
                 spec+: {
                     securityContext: { runAsNonRoot: true },
                     containers_+: {
                         app: kube.Container('app') {
-                            image: 'containous/whoami',
-                            imagePullPolicy: 'IfNotPresent',
-                            securityContext: { runAsUser: 1000 },
+                            image: image,
+                            imagePullPolicy: pullPolicy,
+                            securityContext: { runAsUser: user },
                             args: [
                                 '--port=' + port,
                                 '--name=' + name,
@@ -40,7 +41,7 @@ function(name, port=8080, labels={}){
     },
 
     service: kube.Service('whoami-service') {
-        metadata+: { labels: this.all_labels },
+        metadata+: { labels: this.labels },
         target_pod: this.deployment.spec.template,
         spec+: { type: 'ClusterIP' },
     },
