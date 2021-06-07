@@ -13,7 +13,7 @@ import (
 )
 
 func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration) (updateRequired bool, err error) {
-	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout().Duration)
+	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 
 	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToDiffArgs()...)
@@ -45,7 +45,7 @@ func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfigu
 }
 
 func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, dryRun bool) error {
-	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout().Duration)
+	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 
 	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToUpdateArgs(dryRun)...)

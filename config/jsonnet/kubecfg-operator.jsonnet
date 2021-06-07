@@ -34,6 +34,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
     rbac: {
         local rbac = self,
         local all_perms = ['create', 'delete', 'get', 'list', 'patch', 'update', 'watch'],
+        local ro_perms = ['get', 'list', 'watch'],
 
         manager_service_account: kube.ServiceAccount(this.name_prefix + '-sa') {
             metadata+: {
@@ -49,6 +50,16 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
                     apiGroups: ['apps.kubecfg.io'],
                     resources: ['konfigurations', 'konfigurations/finalizers', 'konfigurations/status'],
                     verbs: all_perms,
+                },
+                {
+                    apiGroups: [''],
+                    resources: ['secrets', 'serviceaccounts'],
+                    verbs: ro_perms,
+                },
+                {
+                    apiGroups: ['source.toolkit.fluxcd.io'],
+                    resources: ['buckets', 'gitrepositories', 'buckets/status', 'gitrepositories/status'],
+                    verbs: ro_perms,
                 },
             ]
         },

@@ -3,30 +3,32 @@ package v1
 import (
 	"context"
 	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/fluxcd/pkg/runtime/dependency"
 )
 
 // GetInterval returns the interval at which to reconcile the Konfiguration.
-func (k *Konfiguration) GetInterval() metav1.Duration { return k.Spec.Interval }
+func (k *Konfiguration) GetInterval() time.Duration { return k.Spec.Interval.Duration }
 
 // GetRetryInterval returns the interval at which to retry a previously failed
 // reconciliation.
-func (k *Konfiguration) GetRetryInterval() metav1.Duration {
+func (k *Konfiguration) GetRetryInterval() time.Duration {
 	if k.Spec.RetryInterval != nil {
-		return *k.Spec.RetryInterval
+		return k.Spec.RetryInterval.Duration
 	}
 	return k.GetInterval()
 }
 
 // GetTimeout returns the timeout for validation, apply and health checking
 // operations.
-func (k *Konfiguration) GetTimeout() metav1.Duration {
+func (k *Konfiguration) GetTimeout() time.Duration {
 	if k.Spec.Timeout != nil {
-		return *k.Spec.Timeout
+		return k.Spec.Timeout.Duration
 	}
 	return k.GetInterval()
 }
@@ -102,3 +104,10 @@ func (k *Konfiguration) GetDiffStrategy() string { return k.Spec.DiffStrategy }
 // ForceCreate returns whether the controller should force recreating resources
 // when patching fails due to an immutable field change.
 // func (k *Konfiguration) ForceCreate() bool { return k.Spec.Force }
+
+func (k Konfiguration) GetDependsOn() (types.NamespacedName, []dependency.CrossNamespaceDependencyReference) {
+	return types.NamespacedName{
+		Namespace: k.Namespace,
+		Name:      k.Name,
+	}, k.Spec.DependsOn
+}

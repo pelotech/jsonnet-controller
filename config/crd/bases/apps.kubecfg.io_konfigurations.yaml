@@ -44,6 +44,24 @@ spec:
           spec:
             description: KonfigurationSpec defines the desired state of Konfiguration
             properties:
+              dependsOn:
+                description: DependsOn may contain a dependency.CrossNamespaceDependencyReference
+                  slice with references to Kustomization resources that must be ready
+                  before this Kustomization can be reconciled.
+                items:
+                  description: CrossNamespaceDependencyReference holds the reference
+                    to a dependency.
+                  properties:
+                    name:
+                      description: Name holds the name reference of a dependency.
+                      type: string
+                    namespace:
+                      description: Namespace holds the namespace reference of a dependency.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
               diffStrategy:
                 default: subset
                 description: Strategy to use when performing diffs against the current
@@ -81,6 +99,30 @@ spec:
                   When not specified, the controller uses the KonfigurationSpec.Interval
                   value to retry failures.
                 type: string
+              sourceRef:
+                description: Reference of the source where the jsonnet, json, or yaml
+                  file(s) are.
+                properties:
+                  apiVersion:
+                    description: API version of the referent
+                    type: string
+                  kind:
+                    description: Kind of the referent
+                    enum:
+                    - GitRepository
+                    - Bucket
+                    type: string
+                  name:
+                    description: Name of the referent
+                    type: string
+                  namespace:
+                    description: Namespace of the referent, defaults to the Kustomization
+                      namespace
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
               suspend:
                 description: This flag tells the controller to suspend subsequent
                   kustomize executions, it does not apply to already started executions.
@@ -197,6 +239,15 @@ spec:
                   - type
                   type: object
                 type: array
+              lastAppliedRevision:
+                description: The last successfully applied revision. The revision
+                  format for Git sources is <branch|tag>/<commit-sha>. For HTTP(S)
+                  paths it will just be the URL.
+                type: string
+              lastAttemptedRevision:
+                description: LastAttemptedRevision is the revision of the last reconciliation
+                  attempt. For HTTP(S) paths it will just be the URL.
+                type: string
               observedGeneration:
                 description: ObservedGeneration is the last reconciled generation.
                 format: int64

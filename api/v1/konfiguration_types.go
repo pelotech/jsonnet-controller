@@ -19,12 +19,20 @@ package v1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/fluxcd/pkg/runtime/dependency"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // KonfigurationSpec defines the desired state of Konfiguration
 type KonfigurationSpec struct {
+	// DependsOn may contain a dependency.CrossNamespaceDependencyReference slice
+	// with references to Kustomization resources that must be ready before this
+	// Kustomization can be reconciled.
+	// +optional
+	DependsOn []dependency.CrossNamespaceDependencyReference `json:"dependsOn,omitempty"`
+
 	// The interval at which to reconcile the Konfiguration.
 	// +required
 	Interval metav1.Duration `json:"interval"`
@@ -51,9 +59,9 @@ type KonfigurationSpec struct {
 	// +optional
 	Variables *Variables `json:"variables,omitempty"`
 
-	// // Reference of the source where the jsonnet, json, or yaml file(s) are.
-	// // +optional
-	// SourceRef *CrossNamespaceSourceReference `json:"sourceRef"`
+	// Reference of the source where the jsonnet, json, or yaml file(s) are.
+	// +optional
+	SourceRef *CrossNamespaceSourceReference `json:"sourceRef"`
 
 	// Prune enables garbage collection. Note that this makes commands take
 	// considerably longer, so you may want to adjust your timeouts accordingly.
@@ -155,16 +163,16 @@ type KonfigurationStatus struct {
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// // The last successfully applied revision.
-	// // The revision format for Git sources is <branch|tag>/<commit-sha>.
-	// // For HTTP(S) paths it will just be the URL.
-	// // +optional
-	// LastAppliedRevision string `json:"lastAppliedRevision,omitempty"`
+	// The last successfully applied revision.
+	// The revision format for Git sources is <branch|tag>/<commit-sha>.
+	// For HTTP(S) paths it will just be the URL.
+	// +optional
+	LastAppliedRevision string `json:"lastAppliedRevision,omitempty"`
 
-	// // LastAttemptedRevision is the revision of the last reconciliation attempt.
-	// // For HTTP(S) paths it will just be the URL.
-	// // +optional
-	// LastAttemptedRevision string `json:"lastAttemptedRevision,omitempty"`
+	// LastAttemptedRevision is the revision of the last reconciliation attempt.
+	// For HTTP(S) paths it will just be the URL.
+	// +optional
+	LastAttemptedRevision string `json:"lastAttemptedRevision,omitempty"`
 
 	// The last successfully applied revision metadata.
 	// +optional

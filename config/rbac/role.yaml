@@ -7,6 +7,22 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - apps.kubecfg.io
   resources:
   - konfigurations
@@ -32,3 +48,19 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - buckets
+  - gitrepositories
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - buckets/status
+  - gitrepositories/status
+  verbs:
+  - get
