@@ -155,16 +155,16 @@ type KonfigurationStatus struct {
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// The last successfully applied revision.
-	// The revision format for Git sources is <branch|tag>/<commit-sha>.
-	// For HTTP(S) paths it will just be the URL.
-	// +optional
-	LastAppliedRevision string `json:"lastAppliedRevision,omitempty"`
+	// // The last successfully applied revision.
+	// // The revision format for Git sources is <branch|tag>/<commit-sha>.
+	// // For HTTP(S) paths it will just be the URL.
+	// // +optional
+	// LastAppliedRevision string `json:"lastAppliedRevision,omitempty"`
 
-	// LastAttemptedRevision is the revision of the last reconciliation attempt.
-	// For HTTP(S) paths it will just be the URL.
-	// +optional
-	LastAttemptedRevision string `json:"lastAttemptedRevision,omitempty"`
+	// // LastAttemptedRevision is the revision of the last reconciliation attempt.
+	// // For HTTP(S) paths it will just be the URL.
+	// // +optional
+	// LastAttemptedRevision string `json:"lastAttemptedRevision,omitempty"`
 
 	// The last successfully applied revision metadata.
 	// +optional

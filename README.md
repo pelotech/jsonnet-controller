@@ -51,7 +51,7 @@ k3d image import ghcr.io/tinyzimmer/kubecfg-controller:latest
 kubecfg update config/jsonnet/kubecfg-operator.jsonnet
 ```
 
-There is a very-simple example of a `Konfiguration` manifest [here](config/samples/apps_v1_konfiguration.yaml).
+There is a very-simple example of a `Konfiguration` manifest [here](config/samples/whoami.yaml).
 It uses the simple `jsonnet` [whoami-example](config/jsonnet/whoami.jsonnet) included in this repo.
 You can apply it with `kubectl`.
 

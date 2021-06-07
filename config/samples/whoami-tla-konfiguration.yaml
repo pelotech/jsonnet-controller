@@ -1,0 +1,17 @@
+apiVersion: apps.kubecfg.io/v1
+kind: Konfiguration
+metadata:
+  name: konfiguration-sample
+spec:
+  interval: 30s
+  prune: true
+  paths:
+    - https://github.com/tinyzimmer/kubecfg-operator/raw/main/config/jsonnet/whoami.jsonnet
+  variables:
+    tlaStr:
+      name: 'hello-world'
+    tlaCode:
+      labels: |
+        {
+          release: 'whoami'
+        }
