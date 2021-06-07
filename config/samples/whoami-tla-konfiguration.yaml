@@ -6,7 +6,7 @@ spec:
   interval: 30s
   prune: true
   paths:
-    - https://github.com/tinyzimmer/kubecfg-operator/raw/main/config/jsonnet/whoami.jsonnet
+    - https://github.com/tinyzimmer/kubecfg-operator/raw/main/config/jsonnet/whoami-tla.jsonnet
   variables:
     tlaStr:
       name: 'hello-world'
