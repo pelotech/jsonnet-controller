@@ -76,10 +76,10 @@ func (r *KonfigurationReconciler) indexBy(kind string) func(o client.Object) []s
 	return func(o client.Object) []string {
 		k, ok := o.(*appsv1.Konfiguration)
 		if !ok {
-			panic(fmt.Sprintf("Expected a Kustomization, got %T", o))
+			panic(fmt.Sprintf("Expected a Konfiguration, got %T", o))
 		}
 
-		if k.Spec.SourceRef.Kind == kind {
+		if k.Spec.SourceRef != nil && k.Spec.SourceRef.Kind == kind {
 			namespace := k.GetNamespace()
 			if k.Spec.SourceRef.Namespace != "" {
 				namespace = k.Spec.SourceRef.Namespace

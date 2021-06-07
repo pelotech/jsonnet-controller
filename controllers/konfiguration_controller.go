@@ -27,10 +27,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/go-logr/logr"
 
@@ -61,16 +59,16 @@ func (r *KonfigurationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&appsv1.Konfiguration{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
 		)).
-		Watches(
-			&source.Kind{Type: &sourcev1.GitRepository{}},
-			handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.GitRepositoryIndexKey)),
-			builder.WithPredicates(SourceRevisionChangePredicate{}),
-		).
-		Watches(
-			&source.Kind{Type: &sourcev1.Bucket{}},
-			handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.BucketIndexKey)),
-			builder.WithPredicates(SourceRevisionChangePredicate{}),
-		).
+		// Watches(
+		// 	&source.Kind{Type: &sourcev1.GitRepository{}},
+		// 	handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.GitRepositoryIndexKey)),
+		// 	builder.WithPredicates(SourceRevisionChangePredicate{}),
+		// ).
+		// Watches(
+		// 	&source.Kind{Type: &sourcev1.Bucket{}},
+		// 	handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.BucketIndexKey)),
+		// 	builder.WithPredicates(SourceRevisionChangePredicate{}),
+		// ).
 		Complete(r)
 }
 

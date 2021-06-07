@@ -114,6 +114,11 @@ func (in *KonfigurationSpec) DeepCopyInto(out *KonfigurationSpec) {
 		*out = new(metav1.Duration)
 		**out = **in
 	}
+	if in.KubeConfig != nil {
+		in, out := &in.KubeConfig, &out.KubeConfig
+		*out = new(KubeConfig)
+		**out = **in
+	}
 	if in.Paths != nil {
 		in, out := &in.Paths, &out.Paths
 		*out = make([]string, len(*in))

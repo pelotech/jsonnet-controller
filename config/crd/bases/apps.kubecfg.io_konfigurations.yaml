@@ -75,6 +75,26 @@ spec:
               interval:
                 description: The interval at which to reconcile the Konfiguration.
                 type: string
+              kubeConfig:
+                description: The KubeConfig for reconciling the Konfiguration on a
+                  remote cluster. Defaults to the in-cluster configuration.
+                properties:
+                  secretRef:
+                    description: SecretRef holds the name to a secret that contains
+                      a 'value' key with the kubeconfig file as the value. It must
+                      be in the same namespace as the Konfiguration. It is recommended
+                      that the kubeconfig is self-contained, and the secret is regularly
+                      updated if credentials such as a cloud-access-token expire.
+                      Cloud specific `cmd-path` auth helpers will not function without
+                      adding binaries and credentials to the Pod that is responsible
+                      for reconciling the Konfiguration.
+                    properties:
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                    type: object
+                type: object
               kubecfgArgs:
                 description: Additional global arguments to pass to kubecfg invocations.
                 items:
@@ -100,8 +120,9 @@ spec:
                   value to retry failures.
                 type: string
               sourceRef:
-                description: Reference of the source where the jsonnet, json, or yaml
-                  file(s) are.
+                description: 'Reference of the source where the jsonnet, json, or
+                  yaml file(s) are. NOTE: This is not finished yet, and only http(s)
+                  URLs in the `paths` field are supported.'
                 properties:
                   apiVersion:
                     description: API version of the referent
@@ -165,6 +186,7 @@ spec:
                 type: object
             required:
             - interval
+            - paths
             - prune
             type: object
           status:

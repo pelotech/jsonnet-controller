@@ -46,7 +46,7 @@ type KonfigurationSpec struct {
 	// The KubeConfig for reconciling the Konfiguration on a remote cluster.
 	// Defaults to the in-cluster configuration.
 	// +optional
-	// KubeConfig *KubeConfig `json:"kubeConfig,omitempty"`
+	KubeConfig *KubeConfig `json:"kubeConfig,omitempty"`
 
 	// Paths to the jsonnet, json, or yaml that should be applied to the cluster.
 	// Defaults to 'None', which translates to the root path of the SourceRef.
@@ -60,6 +60,8 @@ type KonfigurationSpec struct {
 	Variables *Variables `json:"variables,omitempty"`
 
 	// Reference of the source where the jsonnet, json, or yaml file(s) are.
+	// NOTE: This is not finished yet, and only http(s) URLs in the `paths`
+	// field are supported.
 	// +optional
 	SourceRef *CrossNamespaceSourceReference `json:"sourceRef"`
 
