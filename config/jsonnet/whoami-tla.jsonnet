@@ -6,7 +6,7 @@ function(name, port=8080, labels={}){
     local this = self,
 
     labels:: { app: 'whoami' },
-    all_labels:: this.labels + labels
+    all_labels:: this.labels + labels,
 
     deployment: kube.Deployment('whoami-deployment') {
         local deployment = self,
