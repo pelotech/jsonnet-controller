@@ -11,6 +11,7 @@ spec:
     tlaStr:
       name: 'hello-world'
     tlaCode:
+      port: '8081'
       labels: |
         {
           release: 'whoami'

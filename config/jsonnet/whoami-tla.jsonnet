@@ -5,17 +5,21 @@ local kube = import 'https://github.com/bitnami-labs/kube-libsonnet/raw/v1.14.6/
 function(name, port=8080, labels={}){
     local this = self,
 
-    labels:: { app: 'whoami' } + labels,
+    labels:: { app: 'whoami' },
+    all_labels:: this.labels + labels
 
     deployment: kube.Deployment('whoami-deployment') {
         local deployment = self,
         metadata+: {
-            labels: this.labels,
+            labels: this.all_labels,
         },
         spec+: {
             replicas: 1,
+            selector: {
+                matchLabels: this.labels,
+            },
             template+: {
-                metadata+: { labels: this.labels },
+                metadata+: { labels: this.all_labels },
                 spec+: {
                     securityContext: { runAsNonRoot: true },
                     containers_+: {
@@ -36,7 +40,7 @@ function(name, port=8080, labels={}){
     },
 
     service: kube.Service('whoami-service') {
-        metadata+: { labels: this.labels },
+        metadata+: { labels: this.all_labels },
         target_pod: this.deployment.spec.template,
         spec+: { type: 'ClusterIP' },
     },

@@ -72,7 +72,9 @@ spec:
                   type: string
                 type: array
               prune:
-                description: Prune enables garbage collection.
+                description: Prune enables garbage collection. Note that this makes
+                  commands take considerably longer, so you may want to adjust your
+                  timeouts accordingly.
                 type: boolean
               retryInterval:
                 description: The interval at which to retry a previously failed reconciliation.
@@ -195,15 +197,6 @@ spec:
                   - type
                   type: object
                 type: array
-              lastAppliedRevision:
-                description: The last successfully applied revision. The revision
-                  format for Git sources is <branch|tag>/<commit-sha>. For HTTP(S)
-                  paths it will just be the URL.
-                type: string
-              lastAttemptedRevision:
-                description: LastAttemptedRevision is the revision of the last reconciliation
-                  attempt. For HTTP(S) paths it will just be the URL.
-                type: string
               observedGeneration:
                 description: ObservedGeneration is the last reconciled generation.
                 format: int64

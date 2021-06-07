@@ -17,6 +17,9 @@ func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfigu
 	defer cancel()
 
 	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToDiffArgs()...)
+	var outBuf, errBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
 
 	log.Info("Running diff compare", "Command", cmd.String())
 	err = cmd.Run()
@@ -38,7 +41,7 @@ func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfigu
 		return true, nil
 	}
 
-	return false, fmt.Errorf("Diff exited with non-zero/non-ten status %d, stderr: %s", exitErr.ProcessState.ExitCode(), string(exitErr.Stderr))
+	return false, fmt.Errorf("Diff exited with non-zero/non-ten status %d, stdout: %s : stderr: %s", exitErr.ProcessState.ExitCode(), outBuf.String(), errBuf.String())
 }
 
 func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, dryRun bool) error {
