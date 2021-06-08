@@ -36,7 +36,7 @@ func (k *Konfiguration) GetTimeout() time.Duration {
 // GetKubeConfig retrieves the kubeconfig to use for the operation if defined.
 // When nil, it is assumed to use any client the caller already has configured
 // (usually that of the controller-runtime at launch).
-// func (k *Konfiguration) GetKubeConfig() *KubeConfig { return k.Spec.KubeConfig }
+func (k *Konfiguration) GetKubeConfig() *KubeConfig { return k.Spec.KubeConfig }
 
 // Fetch will use the given client and namespace to retrieve the contents of the
 // kubeconfig from the referenced secret.
