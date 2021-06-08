@@ -20,6 +20,8 @@ import (
 	"flag"
 	"os"
 
+	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -46,6 +48,8 @@ func init() {
 
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+
+	_ = sourcev1.AddToScheme(scheme)
 }
 
 func main() {
@@ -81,7 +85,7 @@ func main() {
 	if err = (&controllers.KonfigurationReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(setupLog, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Konfiguration")
 		os.Exit(1)
 	}
