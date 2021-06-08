@@ -28,11 +28,11 @@ import (
 	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
-func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration) (updateRequired bool, err error) {
+func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, paths []string) (updateRequired bool, err error) {
 	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 
-	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToDiffArgs()...)
+	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToDiffArgs(paths)...)
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
@@ -60,11 +60,11 @@ func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfigu
 	return false, fmt.Errorf("Diff exited with non-zero/non-ten status %d, stdout: %s : stderr: %s", exitErr.ProcessState.ExitCode(), outBuf.String(), errBuf.String())
 }
 
-func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, dryRun bool) error {
+func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, paths []string, dryRun bool) error {
 	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 
-	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToUpdateArgs(dryRun)...)
+	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToUpdateArgs(paths, dryRun)...)
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf

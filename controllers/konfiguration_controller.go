@@ -154,8 +154,40 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}, nil
 	}
 
+	// Initially set paths to those defined in spec. If we are running
+	// against a source archive, they will be turned into absolute paths.
+	// Otherwises they are probably http(s):// paths.
+	paths := konfig.GetPaths()
+
+	// Check if there is a reference to a source. This is a stop-gap solution
+	// before full integration with source-controller.
+	if sourceRef := konfig.GetSourceRef(); sourceRef != nil {
+		source, err := sourceRef.GetSource(ctx, r.Client)
+		if client.IgnoreNotFound(err) == nil {
+			if err != nil {
+				reqLogger.Error(err, "Failed to fetch source for Konfiguration")
+				return ctrl.Result{
+					RequeueAfter: konfig.GetRetryInterval(),
+				}, nil
+			}
+		} else {
+			return ctrl.Result{}, err
+		}
+
+		// Check if the artifact is not ready yet
+		if source.GetArtifact() == nil {
+			// TODO: status updates
+			reqLogger.Info("Source is not ready, artifact not found")
+			return ctrl.Result{RequeueAfter: konfig.GetRetryInterval()}, nil
+		}
+
+		// Download and untar the artifact
+
+		// Format paths relative to the temp directory
+	}
+
 	// Do reconciliation
-	if err := r.reconcile(ctx, reqLogger, konfig); err != nil {
+	if err := r.reconcile(ctx, reqLogger, konfig, paths); err != nil {
 		reqLogger.Error(err, "Error during reconciliation")
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
@@ -169,9 +201,9 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}, nil
 }
 
-func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration) error {
+func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration, paths []string) error {
 	// Run a diff first to determine if any actions are necessary
-	updateRequired, err := runKubecfgDiff(ctx, reqLogger, konfig)
+	updateRequired, err := runKubecfgDiff(ctx, reqLogger, konfig, paths)
 	if err != nil {
 		return err
 	}
@@ -183,12 +215,12 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.
 	}
 
 	// Run a dry-run
-	if err := runKubecfgUpdate(ctx, reqLogger, konfig, true); err != nil {
+	if err := runKubecfgUpdate(ctx, reqLogger, konfig, paths, true); err != nil {
 		return err
 	}
 
 	// Run an update
-	if err := runKubecfgUpdate(ctx, reqLogger, konfig, false); err != nil {
+	if err := runKubecfgUpdate(ctx, reqLogger, konfig, paths, false); err != nil {
 		return err
 	}
 

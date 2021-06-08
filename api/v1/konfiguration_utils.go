@@ -21,11 +21,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fluxcd/pkg/runtime/dependency"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/fluxcd/pkg/runtime/dependency"
 )
 
 // GetInterval returns the interval at which to reconcile the Konfiguration.
@@ -126,4 +125,14 @@ func (k Konfiguration) GetDependsOn() (types.NamespacedName, []dependency.CrossN
 		Namespace: k.Namespace,
 		Name:      k.Name,
 	}, k.Spec.DependsOn
+}
+
+func (k *Konfiguration) GetSourceRef() *CrossNamespaceSourceReference {
+	if k.Spec.SourceRef != nil {
+		if k.Spec.SourceRef.Namespace == "" {
+			k.Spec.SourceRef.Namespace = k.GetNamespace()
+		}
+		return k.Spec.SourceRef
+	}
+	return nil
 }

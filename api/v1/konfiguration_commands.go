@@ -31,7 +31,7 @@ func (k *Konfiguration) newArgs(cmd string) []string {
 
 // ToUpdateArgs converts this Konfiguration schema into kubecfg update
 // arguments.
-func (k *Konfiguration) ToUpdateArgs(dryRun bool) []string {
+func (k *Konfiguration) ToUpdateArgs(paths []string, dryRun bool) []string {
 	args := k.newArgs("update")
 
 	// Check if we are adding garbage collection flags.
@@ -55,13 +55,13 @@ func (k *Konfiguration) ToUpdateArgs(dryRun bool) []string {
 	}
 
 	// Finally add the paths
-	args = append(args, k.GetPaths()...)
+	args = append(args, paths...)
 
 	return args
 }
 
 // ToDiffArgs converts this Konfiguration schema into kubecfg diff arguments.
-func (k *Konfiguration) ToDiffArgs() []string {
+func (k *Konfiguration) ToDiffArgs(paths []string) []string {
 	args := k.newArgs("diff")
 	// Check if defining external or top-level arguments.
 	if vars := k.GetVariables(); vars != nil {
@@ -70,6 +70,6 @@ func (k *Konfiguration) ToDiffArgs() []string {
 	// Append the diff strategy
 	args = append(args, []string{"--diff-strategy", k.GetDiffStrategy()}...)
 	// Finally add the paths
-	args = append(args, k.GetPaths()...)
+	args = append(args, paths...)
 	return args
 }

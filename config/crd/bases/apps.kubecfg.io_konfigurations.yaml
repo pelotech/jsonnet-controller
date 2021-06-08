@@ -45,9 +45,10 @@ spec:
             description: KonfigurationSpec defines the desired state of Konfiguration
             properties:
               dependsOn:
-                description: DependsOn may contain a dependency.CrossNamespaceDependencyReference
-                  slice with references to Kustomization resources that must be ready
-                  before this Kustomization can be reconciled.
+                description: 'DependsOn may contain a dependency.CrossNamespaceDependencyReference
+                  slice with references to Konfiguration resources that must be ready
+                  before this Konfiguration can be reconciled. NOTE: This is not yet
+                  implemented.'
                 items:
                   description: CrossNamespaceDependencyReference holds the reference
                     to a dependency.
@@ -137,7 +138,7 @@ spec:
                     description: Name of the referent
                     type: string
                   namespace:
-                    description: Namespace of the referent, defaults to the Kustomization
+                    description: Namespace of the referent, defaults to the Konfiguration
                       namespace
                     type: string
                 required:
@@ -146,7 +147,7 @@ spec:
                 type: object
               suspend:
                 description: This flag tells the controller to suspend subsequent
-                  kustomize executions, it does not apply to already started executions.
+                  kubecfg executions, it does not apply to already started executions.
                   Defaults to false.
                 type: boolean
               timeout:

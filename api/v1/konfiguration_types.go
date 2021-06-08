@@ -17,10 +17,9 @@ Copyright 2021 Avi Zimmerman - Apache License, Version 2.0.
 package v1
 
 import (
+	"github.com/fluxcd/pkg/runtime/dependency"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/fluxcd/pkg/runtime/dependency"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -28,8 +27,9 @@ import (
 // KonfigurationSpec defines the desired state of Konfiguration
 type KonfigurationSpec struct {
 	// DependsOn may contain a dependency.CrossNamespaceDependencyReference slice
-	// with references to Kustomization resources that must be ready before this
-	// Kustomization can be reconciled.
+	// with references to Konfiguration resources that must be ready before this
+	// Konfiguration can be reconciled.
+	// NOTE: This is not yet implemented.
 	// +optional
 	DependsOn []dependency.CrossNamespaceDependencyReference `json:"dependsOn,omitempty"`
 
@@ -70,7 +70,7 @@ type KonfigurationSpec struct {
 	// +required
 	Prune bool `json:"prune"`
 
-	// This flag tells the controller to suspend subsequent kustomize executions,
+	// This flag tells the controller to suspend subsequent kubecfg executions,
 	// it does not apply to already started executions. Defaults to false.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
@@ -151,7 +151,7 @@ type CrossNamespaceSourceReference struct {
 	// +required
 	Name string `json:"name"`
 
-	// Namespace of the referent, defaults to the Kustomization namespace
+	// Namespace of the referent, defaults to the Konfiguration namespace
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
 }
