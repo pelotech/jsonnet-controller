@@ -45,7 +45,7 @@ k3d cluster create
 
 # Import the built image into the cluster if you did not push it
 # to a repository. Replace the image name with any overrides you did.
-k3d image import ghcr.io/tinyzimmer/kubecfg-controller:latest
+k3d image import ghcr.io/pelotech/kubecfg-controller:latest
 
 # Deploy the manager and CRDs to the cluster using kubecfg.
 kubecfg update config/jsonnet/kubecfg-operator.jsonnet
