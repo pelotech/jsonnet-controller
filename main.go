@@ -33,8 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	appsv1 "github.com/tinyzimmer/kubecfg-operator/api/v1"
-	"github.com/tinyzimmer/kubecfg-operator/controllers"
+	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	"github.com/pelotech/kubecfg-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

@@ -2,7 +2,7 @@ domain: kubecfg.io
 layout:
 - go.kubebuilder.io/v3
 projectName: kubecfg-operator
-repo: github.com/tinyzimmer/kubecfg-operator
+repo: github.com/pelotech/kubecfg-operator
 resources:
 - api:
     crdVersion: v1
@@ -11,6 +11,6 @@ resources:
   domain: kubecfg.io
   group: apps
   kind: Konfiguration
-  path: github.com/tinyzimmer/kubecfg-operator/api/v1
+  path: github.com/pelotech/kubecfg-operator/api/v1
   version: v1
 version: "3"

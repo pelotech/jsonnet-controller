@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	appsv1 "github.com/tinyzimmer/kubecfg-operator/api/v1"
+	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"

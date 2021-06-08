@@ -1,4 +1,4 @@
-module github.com/tinyzimmer/kubecfg-operator
+module github.com/pelotech/kubecfg-operator
 
 go 1.16
 

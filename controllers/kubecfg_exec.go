@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	appsv1 "github.com/tinyzimmer/kubecfg-operator/api/v1"
+	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
 func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration) (updateRequired bool, err error) {

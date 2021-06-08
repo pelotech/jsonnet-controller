@@ -36,7 +36,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	appsv1 "github.com/tinyzimmer/kubecfg-operator/api/v1"
+	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
 // KonfigurationReconciler reconciles a Konfiguration object
