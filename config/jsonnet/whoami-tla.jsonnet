@@ -1,5 +1,4 @@
-// A simple whoami application that can be configured
-// with external variables.
+// A simple whoami application that can be configured with top-level arguments.
 local kube = import 'https://github.com/bitnami-labs/kube-libsonnet/raw/v1.14.6/kube.libsonnet';
 
 function(

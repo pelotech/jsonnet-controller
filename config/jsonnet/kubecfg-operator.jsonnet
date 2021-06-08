@@ -4,21 +4,30 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
 {
     local this = self,
 
+    // The prefix to use for names of resources
     name_prefix:: 'kubecfg-operator',
+    // The namespace to deploy resources in
     namespace:: 'kubecfg-system',
+    // Whether to create the namespace
     create_namespace:: true,
+    // Whether the cluster-admin role should be tied to the manager
     cluster_admin:: true,
+    // If setting cluster_admin: false, fill out additional RBAC rules
+    // you'd like to assign to the manager.
     additional_rules:: [],
 
+    // Resource labels
     labels:: {
         app: this.name_prefix,
         control_plane: 'manager'
     },
 
+    // Manager Deployment options
     manager_image:: 'ghcr.io/tinyzimmer/kubecfg-controller:latest',
     manager_pull_policy:: 'IfNotPresent',
     manager_replicas:: 1,
 
+    // Set to false to skip rendering CRDs
     install_crds:: true,
 
     crds: if this.install_crds then [
