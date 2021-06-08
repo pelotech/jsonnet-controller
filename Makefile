@@ -106,3 +106,13 @@ GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
 rm -rf $$TMP_DIR ;\
 }
 endef
+
+
+## BEGIN CUSTOM TARGETS
+
+license-headers:
+	for i in `find . -type f \
+		-not -wholename '.git/*' \
+		-name '*.go'` ; do \
+			if ! grep -q Copyright $$i ; then cat hack/boilerplate.go.txt $$i > $$i.new && mv $$i.new $$i ; fi ; \
+	done
