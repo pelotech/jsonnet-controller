@@ -23,7 +23,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
     },
 
     // Manager Deployment options
-    manager_image:: 'ghcr.io/tinyzimmer/kubecfg-controller:latest',
+    manager_image:: 'ghcr.io/pelotech/kubecfg-controller:latest',
     manager_pull_policy:: 'IfNotPresent',
     manager_replicas:: 1,
 
