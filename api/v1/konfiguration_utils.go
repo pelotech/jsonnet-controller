@@ -75,7 +75,7 @@ func (k *KubeConfig) Fetch(ctx context.Context, c client.Client, namespace strin
 }
 
 // GetPath returns the Path to the jsonnet, json, or yaml to evaluate.
-func (k *Konfiguration) GetPaths() []string { return k.Spec.Paths }
+func (k *Konfiguration) GetPath() string { return k.Spec.Path }
 
 // GetVariables returns the external and top level arguments to pass to kubecfg.
 func (k *Konfiguration) GetVariables() *Variables {

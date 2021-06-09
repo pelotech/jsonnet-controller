@@ -4,8 +4,7 @@ metadata:
   name: whoami
 spec:
   interval: 30s
-  paths:
-    - config/jsonnet/whoami-tla.jsonnet
+  path: config/jsonnet/whoami-tla.jsonnet
   prune: true
   variables:
     tlaStr:

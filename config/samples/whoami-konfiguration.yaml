@@ -5,8 +5,7 @@ metadata:
 spec:
   interval: 30s
   prune: true
-  paths:
-    - https://github.com/pelotech/kubecfg-operator/raw/main/config/jsonnet/whoami.jsonnet
+  path: https://github.com/pelotech/kubecfg-operator/raw/main/config/jsonnet/whoami.jsonnet
   variables:
     extStr:
       name: 'hello-world'

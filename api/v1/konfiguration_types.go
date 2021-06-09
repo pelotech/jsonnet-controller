@@ -48,12 +48,12 @@ type KonfigurationSpec struct {
 	// +optional
 	KubeConfig *KubeConfig `json:"kubeConfig,omitempty"`
 
-	// Paths to the jsonnet, json, or yaml that should be applied to the cluster.
+	// Path to the jsonnet, json, or yaml that should be applied to the cluster.
 	// Defaults to 'None', which translates to the root path of the SourceRef.
 	// When declared as a file path it is assumed to be from the root path of the SourceRef.
 	// You may also define a HTTP(S) link to fetch files from a remote location.
 	// +required
-	Paths []string `json:"paths"`
+	Path string `json:"path"`
 
 	// Variables to use when invoking kubecfg to render manifests.
 	// +optional

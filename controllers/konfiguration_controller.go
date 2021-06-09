@@ -147,7 +147,7 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Initially set paths to those defined in spec. If we are running
 	// against a source archive, they will be turned into absolute paths.
 	// Otherwises they are probably http(s):// paths.
-	paths := konfig.GetPaths()
+	path := konfig.GetPath()
 
 	// Check if there is a reference to a source. This is a stop-gap solution
 	// before full integration with source-controller.
@@ -189,28 +189,18 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}, nil
 		}
 
-		// Format paths relative to the temp directory
-		newPaths := make([]string, len(paths))
-		for i, path := range paths {
-			if httpPathRegex.MatchString(path) {
-				newPaths[i] = path
-				continue
-			}
-			tmpPath, err := securejoin.SecureJoin(tmpDir, path)
-			if err != nil {
-				reqLogger.Error(err, "Failed to format path relative to tmp directory")
-				return ctrl.Result{
-					RequeueAfter: konfig.GetRetryInterval(),
-				}, nil
-			}
-			newPaths[i] = tmpPath
+		path, err = securejoin.SecureJoin(tmpDir, path)
+		if err != nil {
+			reqLogger.Error(err, "Failed to format path relative to tmp directory")
+			return ctrl.Result{
+				RequeueAfter: konfig.GetRetryInterval(),
+			}, nil
 		}
 
-		paths = newPaths
 	}
 
 	// Do reconciliation
-	if err := r.reconcile(ctx, reqLogger, konfig, paths); err != nil {
+	if err := r.reconcile(ctx, reqLogger, konfig, path); err != nil {
 		reqLogger.Error(err, "Error during reconciliation")
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
@@ -224,9 +214,9 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}, nil
 }
 
-func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration, paths []string) error {
+func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration, path string) error {
 	// Run a diff first to determine if any actions are necessary
-	updateRequired, err := runKubecfgDiff(ctx, reqLogger, konfig, paths)
+	updateRequired, err := runKubecfgDiff(ctx, reqLogger, konfig, path)
 	if err != nil {
 		return err
 	}
@@ -238,12 +228,12 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.
 	}
 
 	// Run a dry-run
-	if err := runKubecfgUpdate(ctx, reqLogger, konfig, paths, true); err != nil {
+	if err := runKubecfgUpdate(ctx, reqLogger, konfig, path, true); err != nil {
 		return err
 	}
 
 	// Run an update
-	if err := runKubecfgUpdate(ctx, reqLogger, konfig, paths, false); err != nil {
+	if err := runKubecfgUpdate(ctx, reqLogger, konfig, path, false); err != nil {
 		return err
 	}
 

@@ -101,15 +101,13 @@ spec:
                 items:
                   type: string
                 type: array
-              paths:
-                description: Paths to the jsonnet, json, or yaml that should be applied
+              path:
+                description: Path to the jsonnet, json, or yaml that should be applied
                   to the cluster. Defaults to 'None', which translates to the root
                   path of the SourceRef. When declared as a file path it is assumed
                   to be from the root path of the SourceRef. You may also define a
                   HTTP(S) link to fetch files from a remote location.
-                items:
-                  type: string
-                type: array
+                type: string
               prune:
                 description: Prune enables garbage collection. Note that this makes
                   commands take considerably longer, so you may want to adjust your
@@ -187,7 +185,7 @@ spec:
                 type: object
             required:
             - interval
-            - paths
+            - path
             - prune
             type: object
           status:
