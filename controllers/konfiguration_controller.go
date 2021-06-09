@@ -24,14 +24,12 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/fluxcd/pkg/runtime/predicates"
 	"github.com/fluxcd/pkg/untar"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -55,8 +53,20 @@ type KonfigurationReconciler struct {
 	httpClient *retryablehttp.Client
 }
 
+type ReconcilerOptions struct {
+	FluxEnabled bool
+}
+
 // SetupWithManager sets up the controller with the Manager.
-func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Manager) error {
+func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Manager, opts *ReconcilerOptions) error {
+	// Set up an http client for fetching artifacts
+	httpClient := retryablehttp.NewClient()
+	httpClient.RetryWaitMin = 5 * time.Second
+	httpClient.RetryWaitMax = 30 * time.Second
+	httpClient.RetryMax = 5
+	httpClient.Logger = nil
+	r.httpClient = httpClient
+
 	// Index the Kustomizations by the GitRepository references they (may) point at.
 	if err := mgr.GetCache().IndexField(context.TODO(), &appsv1.Konfiguration{}, appsv1.GitRepositoryIndexKey,
 		r.indexBy(sourcev1.GitRepositoryKind)); err != nil {
@@ -69,58 +79,19 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 		return fmt.Errorf("failed setting index fields: %w", err)
 	}
 
-	httpClient := retryablehttp.NewClient()
-	httpClient.RetryWaitMin = 5 * time.Second
-	httpClient.RetryWaitMax = 30 * time.Second
-	httpClient.RetryMax = 5
-	httpClient.Logger = nil
-	r.httpClient = httpClient
-
-	// Determine if the source-controller and it's CRDs are installed in the cluster.
-	// If not, we can still operate standalone with HTTP(S) URLs, but trying to watch
-	// them will result in a panic during bootstrap.
-
-	var gitPresent, bucketsPresent bool
-
-	// Check that GitRepository CRs are present
-	var gitList sourcev1.GitRepositoryList
-	if err := mgr.GetClient().List(context.TODO(), &gitList, client.InNamespace(metav1.NamespaceAll)); err != nil {
-		// TODO: Ugly
-		if !strings.Contains(err.Error(), "no matches for kind") {
-			return err
-		}
-		log.Info("GitRepositories do not appear to be registered in the cluster, sourceRefs for them will not work", "Error", err.Error())
-	} else {
-		gitPresent = true
-	}
-
-	// Check that Bucket CRs are present
-	var bucketList sourcev1.BucketList
-	if err := mgr.GetClient().List(context.TODO(), &bucketList, client.InNamespace(metav1.NamespaceAll)); err != nil {
-		// TODO: Ugly
-		if !strings.Contains(err.Error(), "no matches for kind") {
-			return err
-		}
-		log.Info("Buckets do not appear to be registered in the cluster, sourceRefs for them will not work", "Error", err.Error())
-	} else {
-		bucketsPresent = true
-	}
-
+	log.Info("Setting up Konfigurations subscription")
 	c := ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.Konfiguration{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
 		))
 
-	if gitPresent {
+	if opts.FluxEnabled {
 		log.Info("Subscribing to changes to GitRepositories")
 		c = c.Watches(
 			&source.Kind{Type: &sourcev1.GitRepository{}},
 			handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.GitRepositoryIndexKey)),
 			builder.WithPredicates(SourceRevisionChangePredicate{}),
 		)
-	}
-
-	if bucketsPresent {
 		log.Info("Subscribing to changes to Buckets")
 		c = c.Watches(
 			&source.Kind{Type: &sourcev1.Bucket{}},

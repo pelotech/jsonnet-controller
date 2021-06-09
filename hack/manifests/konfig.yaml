@@ -1,0 +1,18 @@
+apiVersion: apps.kubecfg.io/v1
+kind: Konfiguration
+metadata:
+  name: whoami
+spec:
+  interval: 30s
+  paths:
+    - config/jsonnet/whoami-tla.jsonnet
+  prune: true
+  variables:
+    tlaStr:
+      name: 'hello-world'
+    tlaCode:
+      port: '8080'
+  sourceRef:
+    kind: GitRepository
+    name: kubecfg-samples
+    namespace: flux-system
