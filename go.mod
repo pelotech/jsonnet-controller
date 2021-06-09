@@ -3,9 +3,12 @@ module github.com/pelotech/kubecfg-operator
 go 1.16
 
 require (
+	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/fluxcd/pkg/runtime v0.11.1
+	github.com/fluxcd/pkg/untar v0.1.0
 	github.com/fluxcd/source-controller/api v0.13.2
 	github.com/go-logr/logr v0.3.0
+	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/ginkgo v1.14.1

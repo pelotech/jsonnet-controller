@@ -19,9 +19,16 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/fluxcd/pkg/runtime/predicates"
+	"github.com/fluxcd/pkg/untar"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,7 +41,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-retryablehttp"
 
 	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
@@ -42,11 +51,31 @@ import (
 // KonfigurationReconciler reconciles a Konfiguration object
 type KonfigurationReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme     *runtime.Scheme
+	httpClient *retryablehttp.Client
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Manager) error {
+	// Index the Kustomizations by the GitRepository references they (may) point at.
+	if err := mgr.GetCache().IndexField(context.TODO(), &appsv1.Konfiguration{}, appsv1.GitRepositoryIndexKey,
+		r.indexBy(sourcev1.GitRepositoryKind)); err != nil {
+		return fmt.Errorf("failed setting index fields: %w", err)
+	}
+
+	// Index the Kustomizations by the Bucket references they (may) point at.
+	if err := mgr.GetCache().IndexField(context.TODO(), &appsv1.Konfiguration{}, appsv1.BucketIndexKey,
+		r.indexBy(sourcev1.BucketKind)); err != nil {
+		return fmt.Errorf("failed setting index fields: %w", err)
+	}
+
+	httpClient := retryablehttp.NewClient()
+	httpClient.RetryWaitMin = 5 * time.Second
+	httpClient.RetryWaitMax = 30 * time.Second
+	httpClient.RetryMax = 5
+	httpClient.Logger = nil
+	r.httpClient = httpClient
+
 	// Determine if the source-controller and it's CRDs are installed in the cluster.
 	// If not, we can still operate standalone with HTTP(S) URLs, but trying to watch
 	// them will result in a panic during bootstrap.
@@ -75,18 +104,6 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 		log.Info("Buckets do not appear to be registered in the cluster, sourceRefs for them will not work", "Error", err.Error())
 	} else {
 		bucketsPresent = true
-	}
-
-	// Index the Kustomizations by the GitRepository references they (may) point at.
-	if err := mgr.GetCache().IndexField(context.TODO(), &appsv1.Konfiguration{}, appsv1.GitRepositoryIndexKey,
-		r.indexBy(sourcev1.GitRepositoryKind)); err != nil {
-		return fmt.Errorf("failed setting index fields: %w", err)
-	}
-
-	// Index the Kustomizations by the Bucket references they (may) point at.
-	if err := mgr.GetCache().IndexField(context.TODO(), &appsv1.Konfiguration{}, appsv1.BucketIndexKey,
-		r.indexBy(sourcev1.BucketKind)); err != nil {
-		return fmt.Errorf("failed setting index fields: %w", err)
 	}
 
 	c := ctrl.NewControllerManagedBy(mgr).
@@ -125,6 +142,8 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=buckets/status;gitrepositories/status,verbs=get
 // +kubebuilder:rbac:groups="",resources=secrets;serviceaccounts,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+
+var httpPathRegex = regexp.MustCompile("(https?)://")
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -181,9 +200,42 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{RequeueAfter: konfig.GetRetryInterval()}, nil
 		}
 
-		// Download and untar the artifact
+		// Create a temp directory for the artifact
+		tmpDir, err := ioutil.TempDir("", konfig.GetName())
+		if err != nil {
+			reqLogger.Error(err, "Could not allocate a temp directory for source artifact")
+			return ctrl.Result{
+				RequeueAfter: konfig.GetRetryInterval(),
+			}, nil
+		}
+		defer os.RemoveAll(tmpDir)
+
+		// Download and extract the artifact
+		if err := r.downloadAndExtractTo(source.GetArtifact().URL, tmpDir); err != nil {
+			reqLogger.Error(err, "Failed to download source artifact")
+			return ctrl.Result{
+				RequeueAfter: konfig.GetRetryInterval(),
+			}, nil
+		}
 
 		// Format paths relative to the temp directory
+		newPaths := make([]string, len(paths))
+		for i, path := range paths {
+			if httpPathRegex.MatchString(path) {
+				newPaths[i] = path
+				continue
+			}
+			tmpPath, err := securejoin.SecureJoin(tmpDir, path)
+			if err != nil {
+				reqLogger.Error(err, "Failed to format path relative to tmp directory")
+				return ctrl.Result{
+					RequeueAfter: konfig.GetRetryInterval(),
+				}, nil
+			}
+			newPaths[i] = tmpPath
+		}
+
+		paths = newPaths
 	}
 
 	// Do reconciliation
@@ -222,6 +274,38 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.
 	// Run an update
 	if err := runKubecfgUpdate(ctx, reqLogger, konfig, paths, false); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r *KonfigurationReconciler) downloadAndExtractTo(artifactURL, tmpDir string) error {
+	if hostname := os.Getenv("SOURCE_CONTROLLER_LOCALHOST"); hostname != "" {
+		u, err := url.Parse(artifactURL)
+		if err != nil {
+			return err
+		}
+		u.Host = hostname
+		artifactURL = u.String()
+	}
+
+	req, err := retryablehttp.NewRequest(http.MethodGet, artifactURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create a new request: %w", err)
+	}
+
+	resp, err := r.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to download artifact, error: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to download artifact from %s, status: %s", artifactURL, resp.Status)
+	}
+
+	if _, err = untar.Untar(resp.Body, tmpDir); err != nil {
+		return fmt.Errorf("failed to untar artifact, error: %w", err)
 	}
 
 	return nil
