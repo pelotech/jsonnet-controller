@@ -150,7 +150,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
                             image: this.manager_image,
                             imagePullPolicy: this.manager_pull_policy,
                             command: ['/manager'],
-                            args: [ '--leader-elect' ] + if this.flux_enabled then ['--flux-enabled'],
+                            args: [ '--leader-elect' ] + if this.flux_enabled then ['--flux-enabled'] else [],
                             securityContext: { allowPrivilegeEscalation: false },
                             ports_+: {
                                 http: { containerPort: 8080 },
