@@ -110,6 +110,7 @@ endef
 
 ## BEGIN CUSTOM TARGETS
 
+
 license-headers:
 	for i in `find . -type f \
 		-not -wholename '.git/*' \
@@ -117,23 +118,33 @@ license-headers:
 			if ! grep -q Copyright $$i ; then cat hack/boilerplate.go.txt $$i > $$i.new && mv $$i.new $$i ; fi ; \
 	done
 
+##@ Testing in k3d
+
 K3D          ?= k3d
 KUBECTL      ?= kubectl
 KUBECFG      ?= kubecfg
+FLUX         ?= flux
 CLUSTER_NAME ?= kubecfg-operator
 SOURCE_VER   ?= v0.14.0
+CONTEXT      ?= k3d-$(CLUSTER_NAME)
 
-cluster:
+cluster: ## Create a local cluster with k3d
 	$(K3D) cluster create $(CLUSTER_NAME)
-	$(KUBECTL) config use-context k3d-$(CLUSTER_NAME)
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/fluxcd/source-controller/${SOURCE_VER}/config/crd/bases/source.toolkit.fluxcd.io_gitrepositories.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/fluxcd/source-controller/${SOURCE_VER}/config/crd/bases/source.toolkit.fluxcd.io_buckets.yaml
 
-docker-load: docker-build
+flux-crds: ## Install the flux source-controller CRDs to the k3d cluster.
+	$(KUBECTL) apply --context=$(CONTEXT) \
+		-f https://raw.githubusercontent.com/fluxcd/source-controller/${SOURCE_VER}/config/crd/bases/source.toolkit.fluxcd.io_gitrepositories.yaml \
+	 	-f https://raw.githubusercontent.com/fluxcd/source-controller/${SOURCE_VER}/config/crd/bases/source.toolkit.fluxcd.io_buckets.yaml
+
+flux-full-install: ## Install flux and all its components to the k3d cluster.
+	$(FLUX) --context=$(CONTEXT) check --pre
+	$(FLUX) --context=$(CONTEXT) install 
+
+docker-load: docker-build ## Load the manager image into the k3d cluster.
 	$(K3D) image import --cluster $(CLUSTER_NAME) $(IMG)
 
-deploy:
-	$(KUBECFG) update config/jsonnet/kubecfg-operator.jsonnet
+deploy: ## Deploy the manager and CRDs into the cluster defined by ~/.kube/config (k3d if used with `make cluster`). 
+	$(KUBECFG) --context=$(CONTEXT) update config/jsonnet/kubecfg-operator.jsonnet
 
-delete-cluster:
+delete-cluster: ## Delete the k3d cluster.
 	$(K3D) cluster delete $(CLUSTER_NAME)

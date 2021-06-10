@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"time"
 
 	"github.com/fluxcd/pkg/runtime/predicates"
@@ -113,8 +112,6 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=buckets/status;gitrepositories/status,verbs=get
 // +kubebuilder:rbac:groups="",resources=secrets;serviceaccounts,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
-
-var httpPathRegex = regexp.MustCompile("(https?)://")
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

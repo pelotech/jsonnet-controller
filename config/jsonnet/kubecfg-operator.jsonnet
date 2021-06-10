@@ -5,11 +5,11 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
     local this = self,
 
     // The prefix to use for names of resources
-    name_prefix:: 'kubecfg-operator',
+    name_prefix:: 'kubecfg-controller',
     // The namespace to deploy resources in
-    namespace:: 'kubecfg-system',
+    namespace:: 'flux-system',
     // Whether to create the namespace
-    create_namespace:: true,
+    create_namespace:: false,
     // Whether the cluster-admin role should be tied to the manager
     cluster_admin:: true,
     // If setting cluster_admin: false, fill out additional RBAC rules
@@ -124,7 +124,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
         } else null
     },
 
-    manager_deployment: kube.Deployment(this.name_prefix + '-manager') {
+    manager_deployment: kube.Deployment(this.name_prefix) {
         metadata+: { 
             namespace: this.namespace,
             labels: this.labels
