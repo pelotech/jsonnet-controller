@@ -51,10 +51,11 @@ type KonfigurationReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	httpClient *retryablehttp.Client
+	opts       *ReconcilerOptions
 }
 
 type ReconcilerOptions struct {
-	FluxEnabled bool
+	HTTPRetryMax int
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -63,9 +64,10 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 	httpClient := retryablehttp.NewClient()
 	httpClient.RetryWaitMin = 5 * time.Second
 	httpClient.RetryWaitMax = 30 * time.Second
-	httpClient.RetryMax = 5
+	httpClient.RetryMax = opts.HTTPRetryMax
 	httpClient.Logger = nil
 	r.httpClient = httpClient
+	r.opts = opts
 
 	// Index the Kustomizations by the GitRepository references they (may) point at.
 	if err := mgr.GetCache().IndexField(context.TODO(), &appsv1.Konfiguration{}, appsv1.GitRepositoryIndexKey,
@@ -85,20 +87,18 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
 		))
 
-	if opts.FluxEnabled {
-		log.Info("Subscribing to changes to GitRepositories")
-		c = c.Watches(
-			&source.Kind{Type: &sourcev1.GitRepository{}},
-			handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.GitRepositoryIndexKey)),
-			builder.WithPredicates(SourceRevisionChangePredicate{}),
-		)
-		log.Info("Subscribing to changes to Buckets")
-		c = c.Watches(
-			&source.Kind{Type: &sourcev1.Bucket{}},
-			handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.BucketIndexKey)),
-			builder.WithPredicates(SourceRevisionChangePredicate{}),
-		)
-	}
+	log.Info("Subscribing to changes to GitRepositories")
+	c = c.Watches(
+		&source.Kind{Type: &sourcev1.GitRepository{}},
+		handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.GitRepositoryIndexKey)),
+		builder.WithPredicates(SourceRevisionChangePredicate{}),
+	)
+	log.Info("Subscribing to changes to Buckets")
+	c = c.Watches(
+		&source.Kind{Type: &sourcev1.Bucket{}},
+		handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.BucketIndexKey)),
+		builder.WithPredicates(SourceRevisionChangePredicate{}),
+	)
 
 	return c.Complete(r)
 }

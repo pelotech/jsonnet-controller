@@ -6,7 +6,7 @@ An operator for managing remote manifests via kubecfg
 This project is in very early stages proof-of-concept. There are no images published and to
 test it out you will have to build (and/or publish) images yourself.
 
-The ultimate goal is to potentially integrate this project with the Flux [GitOps Toolkit APIs](https://fluxcd.io/docs/gitops-toolkit/), along
+The ultimate goal is to finish integratating this project with the Flux [GitOps Toolkit APIs](https://fluxcd.io/docs/gitops-toolkit/), along
 with the existing functionality for absolute URLs.
 
 ## Development
@@ -63,7 +63,7 @@ You can apply it with `kubectl`.
 kubectl apply -f config/samples/apps_v1_konfiguration.yaml
 ```
 
-There are also examples of using this controller with Flux's `source-controller` now.
+There are also examples of using this controller with Flux's `source-controller`.
 But, like the rest of this project, this is all very PoC still. 
 The examples use the whoami jsonnet snippets in this repository as well.
 See the example [GitRepository](hack/manifests/git-repo.yaml) and [Konfiguration](hack/manifests/konfig.yaml).

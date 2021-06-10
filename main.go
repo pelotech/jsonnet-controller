@@ -62,7 +62,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.BoolVar(&reconcileOpts.FluxEnabled, "flux-enabled", false, "Set to have the controller watch for source-controller objects")
+	flag.IntVar(&reconcileOpts.HTTPRetryMax, "http-retry-max", 5, "Maximum number of times to retry fetching a source artifact")
 	opts := zap.Options{
 		Development: true,
 	}

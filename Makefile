@@ -77,12 +77,12 @@ install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
+# deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+# 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+# 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/default | kubectl delete -f -
+# undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
+# 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
@@ -116,3 +116,24 @@ license-headers:
 		-name '*.go'` ; do \
 			if ! grep -q Copyright $$i ; then cat hack/boilerplate.go.txt $$i > $$i.new && mv $$i.new $$i ; fi ; \
 	done
+
+K3D          ?= k3d
+KUBECTL      ?= kubectl
+KUBECFG      ?= kubecfg
+CLUSTER_NAME ?= kubecfg-operator
+SOURCE_VER   ?= v0.14.0
+
+cluster:
+	$(K3D) cluster create $(CLUSTER_NAME)
+	$(KUBECTL) config use-context k3d-$(CLUSTER_NAME)
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/fluxcd/source-controller/${SOURCE_VER}/config/crd/bases/source.toolkit.fluxcd.io_gitrepositories.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/fluxcd/source-controller/${SOURCE_VER}/config/crd/bases/source.toolkit.fluxcd.io_buckets.yaml
+
+docker-load: docker-build
+	$(K3D) image import --cluster $(CLUSTER_NAME) $(IMG)
+
+deploy:
+	$(KUBECFG) update config/jsonnet/kubecfg-operator.jsonnet
+
+delete-cluster:
+	$(K3D) cluster delete $(CLUSTER_NAME)

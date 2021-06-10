@@ -65,11 +65,11 @@ func (k *KubeConfig) Fetch(ctx context.Context, c client.Client, namespace strin
 		return "", err
 	}
 	if secret.Data == nil {
-		return "", fmt.Errorf("Secret '%s/%s' contains no data", secret.GetNamespace(), secret.GetName())
+		return "", fmt.Errorf("secret '%s/%s' contains no data", secret.GetNamespace(), secret.GetName())
 	}
 	bytes, ok := secret.Data["value"]
 	if !ok {
-		return "", fmt.Errorf("Secret '%s/%s' contains no 'value' key", secret.GetNamespace(), secret.GetName())
+		return "", fmt.Errorf("secret '%s/%s' contains no 'value' key", secret.GetNamespace(), secret.GetName())
 	}
 	return string(bytes), nil
 }

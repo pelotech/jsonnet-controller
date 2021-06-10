@@ -30,9 +30,6 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
     // Set to false to skip rendering CRDs
     install_crds:: true,
 
-    // Enable flux support
-    flux_enabled:: false,
-
     crds: if this.install_crds then [
         kubecfg.parseYaml(importstr '../crd/bases/apps.kubecfg.io_konfigurations.yaml'),
     ],
@@ -150,7 +147,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
                             image: this.manager_image,
                             imagePullPolicy: this.manager_pull_policy,
                             command: ['/manager'],
-                            args: [ '--leader-elect' ] + if this.flux_enabled then ['--flux-enabled'] else [],
+                            args: [ '--leader-elect' ],
                             securityContext: { allowPrivilegeEscalation: false },
                             ports_+: {
                                 http: { containerPort: 8080 },
