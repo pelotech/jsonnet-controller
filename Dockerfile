@@ -31,8 +31,7 @@ RUN    curl -LO "https://dl.k8s.io/release/`curl -L -s https://dl.k8s.io/release
     && curl -LO "https://dl.k8s.io/`curl -L -s https://dl.k8s.io/release/stable.txt`/bin/linux/${ARCH}/kubectl.sha256" \
     && echo "`cat kubectl.sha256` kubectl" | sha256sum --check \
     && chmod +x kubectl \
-    && upx -9 kubectl \
-    && mkdir tmp cache
+    && upx -9 kubectl
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -50,13 +49,11 @@ COPY controllers/ controllers/
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="-s -w" -a -o manager main.go \
         && upx -9 manager
 
-# Scratch image just with binaries and empty directories
-FROM scratch
+# Alpine for small base and ca-certificates
+FROM alpine:latest
 
 COPY --from=kubecfg-builder /workspace/kubecfg/kubecfg .
 COPY --from=builder /workspace/kubectl .
 COPY --from=builder /workspace/manager .
-COPY --from=builder /workspace/tmp /tmp
-COPY --from=builder /workspace/cache /cache
 
 ENTRYPOINT ["/manager"]

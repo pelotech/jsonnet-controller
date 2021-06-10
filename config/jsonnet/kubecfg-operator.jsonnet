@@ -137,10 +137,16 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
                 },
                 spec+: {
                     serviceAccountName: this.rbac.manager_service_account.metadata.name,
-                    securityContext: { runAsNonRoot: true },
+                    securityContext: { 
+                        runAsNonRoot: true,
+                        runAsUser: 65532,
+                        runAsGroup: 65532,
+                        fsGroup: 65532
+                    },
                     terminationGracePeriodSeconds: 10,
                     volumes_: {
                         manager_cache: kube.EmptyDirVolume(),
+                        manager_tmp: kube.EmptyDirVolume()
                     }, 
                     containers_+: {
                         manager: kube.Container('manager') {
@@ -154,6 +160,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
                             },
                             volumeMounts_+: {
                                 manager_cache: { mountPath: '/cache' },
+                                manager_tmp: { mountPath: '/tmp' },
                             },
                             livenessProbe: {
                                 httpGet: { path: '/healthz', port: 8081 },

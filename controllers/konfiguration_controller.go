@@ -80,7 +80,7 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 		return fmt.Errorf("failed setting index fields: %w", err)
 	}
 
-	log.Info("Setting up Konfigurations subscription")
+	log.Info("Subscribing to changes to Konfigurations")
 	c := ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.Konfiguration{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),

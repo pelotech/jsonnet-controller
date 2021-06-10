@@ -24,6 +24,14 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      volumes:
+        - name: manager-cache
+          emptyDir: {}
+        - name: manager-tmp
+          emptyDir: {}
       containers:
       - command:
         - /manager
@@ -31,8 +39,13 @@ spec:
         - --leader-elect
         image: controller:latest
         name: manager
-        securityContext:
+        securityContext:          
           allowPrivilegeEscalation: false
+        volumeMounts:
+          - name: manager-cache
+            mountPath: /cache
+          - name: manager-tmp
+            mountPath: /tmp
         livenessProbe:
           httpGet:
             path: /healthz
