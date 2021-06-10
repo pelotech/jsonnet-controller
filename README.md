@@ -3,8 +3,7 @@ An operator for managing remote manifests via kubecfg
 
 ---
 
-This project is in very early stages proof-of-concept. There are no images published and to
-test it out you will have to build (and/or publish) images yourself.
+This project is in very early stages proof-of-concept. Only `latest` images are published, and they are not guaranteed stable at the moment.
 
 The ultimate goal is to finish integratating this project with the Flux [GitOps Toolkit APIs](https://fluxcd.io/docs/gitops-toolkit/), along
 with the existing functionality for absolute URLs.
@@ -19,6 +18,9 @@ You can use the `Makefile` to perform any build operations:
 # After code changes to the API make sure you run deep-copy code and manifest
 # generation
 make generate manifests
+
+## Below steps are only if you wish to build your own image. You can also download
+## from the public repository.
 
 # Builds the docker image
 make docker-build
@@ -45,6 +47,8 @@ k3d cluster create
 
 # Import the built image into the cluster if you did not push it
 # to a repository. Replace the image name with any overrides you did.
+# You can skip this step if you wish to pull the image from the public
+# repository.
 k3d image import ghcr.io/pelotech/kubecfg-controller:latest
 
 # Deploy the manager and CRDs to the cluster using kubecfg.
