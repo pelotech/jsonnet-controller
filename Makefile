@@ -126,11 +126,16 @@ KUBECTL      ?= kubectl
 KUBECFG      ?= kubecfg
 FLUX         ?= flux
 CLUSTER_NAME ?= kubecfg-operator
+K8S_VER      ?= v1.20.6
 SOURCE_VER   ?= v0.14.0
+K3S_IMG      ?= rancher/k3s:$(K8S_VER)-k3s1
 CONTEXT      ?= k3d-$(CLUSTER_NAME)
 
+K3D_CLUSTER_ARGS ?=
+
 cluster: ## Create a local cluster with k3d
-	$(K3D) cluster create $(CLUSTER_NAME)
+	$(K3D) $(K3D_CLUSTER_ARGS) --image $(K3S_IMG) \
+		cluster create $(CLUSTER_NAME)
 
 flux-crds: ## Install the flux source-controller CRDs to the k3d cluster.
 	$(KUBECTL) apply --context=$(CONTEXT) \
@@ -144,7 +149,7 @@ flux-full-install: ## Install flux and all its components to the k3d cluster.
 docker-load: docker-build ## Load the manager image into the k3d cluster.
 	$(K3D) image import --cluster $(CLUSTER_NAME) $(IMG)
 
-deploy: ## Deploy the manager and CRDs into the cluster defined by ~/.kube/config (k3d if used with `make cluster`). 
+deploy: ## Deploy the manager and CRDs into the k3d cluster.
 	$(KUBECFG) --context=$(CONTEXT) update config/jsonnet/kubecfg-operator.jsonnet
 
 delete-cluster: ## Delete the k3d cluster.
