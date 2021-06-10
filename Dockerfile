@@ -14,8 +14,7 @@ RUN git clone https://github.com/tinyzimmer/kubecfg && \
         cd kubecfg && git checkout operator-poc
 
 RUN cd kubecfg \
-    && GOOS=linux GOARCH=${ARCH} GO_LDFLAGS="-s -w" make \
-    && upx -9 kubecfg
+    && GOOS=linux GOARCH=${ARCH} GO_LDFLAGS="-s -w" make
 
 # Build the manager binary
 FROM base-builder as builder
@@ -49,11 +48,13 @@ COPY controllers/ controllers/
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="-s -w" -a -o manager main.go \
         && upx -9 manager
 
-# Alpine for small base and ca-certificates
-FROM alpine:latest
-
-COPY --from=kubecfg-builder /workspace/kubecfg/kubecfg .
-COPY --from=builder /workspace/kubectl .
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /
 COPY --from=builder /workspace/manager .
+COPY --from=builder /workspace/kubectl .
+COPY --from=kubecfg-builder /workspace/kubecfg/kubecfg .
+USER 65532:65532
 
 ENTRYPOINT ["/manager"]

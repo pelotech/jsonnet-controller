@@ -139,9 +139,6 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
                     serviceAccountName: this.rbac.manager_service_account.metadata.name,
                     securityContext: { 
                         runAsNonRoot: true,
-                        runAsUser: 65532,
-                        runAsGroup: 65532,
-                        fsGroup: 65532
                     },
                     terminationGracePeriodSeconds: 10,
                     volumes_: {
