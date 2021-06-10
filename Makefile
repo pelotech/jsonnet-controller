@@ -20,7 +20,7 @@ SHELL = /usr/bin/env bash -o pipefail
 
 all: build
 
-##@ General
+##@ General 
 
 # The help target prints out all targets with their descriptions organized
 # beneath their categories. The categories are represented by '##@' and the
