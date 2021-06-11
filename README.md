@@ -139,6 +139,9 @@ To use the `jsonnet` you will need to install [`kubecfg`](https://github.com/bit
 # Make a test cluster
 k3d cluster create
 
+# Install flux
+flux install
+
 # Import the built image into the cluster if you did not push it
 # to a repository. Replace the image name with any overrides you did.
 # You can skip this step if you wish to pull the image from the public
@@ -147,6 +150,17 @@ k3d image import ghcr.io/pelotech/kubecfg-controller:latest
 
 # Deploy the manager and CRDs to the cluster using kubecfg.
 kubecfg update config/jsonnet/kubecfg-operator.jsonnet
+```
+
+There are also `Makefile` helpers to do the equivalent of all of the above:
+
+```bash
+make cluster flux-full-install docker-load deploy
+#       |              |            |          |
+#   Create Cluster     |            |          |
+#                  Install Flux     |          |
+#                                Load Image    |
+#                                            Deploy Controller and CRDs
 ```
 
 There is a very-simple example of a `Konfiguration` manifest [here](config/samples/whoami-konfiguration.yaml).
