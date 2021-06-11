@@ -31,12 +31,15 @@ jobs:
       uses: docker/setup-buildx-action@v1
 
     # Set up Go pkg cache
-    - name: Cache Go packages
+    - name: Cache Go Packages and controller-util Binaries
       uses: actions/cache@v2
       with:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
+          ${{ env.GITHUB_WORKSPACE }}/bin
+          ${{ env.GITHUB_WORKSPACE }}/testbin
+          
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
@@ -51,16 +54,16 @@ jobs:
           ${{ runner.os }}-buildx-
 
     # Login to the container registry
-    - name: Login to container reigstry
+    - name: Login to Container Registry
       run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
       if: ${{ github.event_name != 'pull_request' }}
 
     # Run unit tests - this will also ensure code-generation is run
-    - name: Run Tests
+    - name: Run Unit Tests
       run: make test
 
     # Build and push the image
-    - name: Build and push
+    - name: Build and Push Controller Image
       uses: docker/build-push-action@v2
       with:
         context: .
@@ -80,10 +83,10 @@ jobs:
         mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
     # Update documentation
-    - name: Force pkg.go.dev to refresh main
+    - name: Force pkg.go.dev to refresh main branch
       run: curl "https://proxy.golang.org/github.com/pelotech/kubecfg-operator/@v/${GITHUB_REF##*/}.info"
       if: ${{ steps.version.outputs.tag == 'latest' && github.event_name != 'pull_request' }}
 
-    - name: Force pkg.go.dev to refresh version
+    - name: Force pkg.go.dev to refresh latest tag
       run: curl https://proxy.golang.org/github.com/pelotech/kubecfg-operator/@v/${{ steps.version.outputs.tag }}.info
       if: ${{ steps.version.outputs.tag != 'latest' && github.event_name != 'pull_request' }}
