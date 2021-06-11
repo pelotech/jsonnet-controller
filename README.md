@@ -16,6 +16,9 @@ You can use either `kustomize` or `kubecfg` to install the controller and its CR
 
 ```bash
 # Using kubecfg - import and extend this file for modifications
+## The kubecfg assumes the `flux-system` namespace is present already.
+## If it isn't, create it (or import the file and set `create_namespace: true`):
+##    kubectl create ns flux-system
 kubecfg update config/jsonnet/kubecfg-operator.jsonnet
 
 # Using kustomize
