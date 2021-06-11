@@ -55,7 +55,7 @@ k3d image import ghcr.io/pelotech/kubecfg-controller:latest
 kubecfg update config/jsonnet/kubecfg-operator.jsonnet
 ```
 
-There is a very-simple example of a `Konfiguration` manifest [here](config/samples/whoami.yaml).
+There is a very-simple example of a `Konfiguration` manifest [here](config/samples/whoami-konfiguration.yaml).
 It uses the simple `jsonnet` [whoami-example](config/jsonnet/whoami.jsonnet) included in this repo.
 You can apply it with `kubectl`.
 
@@ -66,7 +66,7 @@ kubectl apply -f config/samples/apps_v1_konfiguration.yaml
 There are also examples of using this controller with Flux's `source-controller`.
 But, like the rest of this project, this is all very PoC still. 
 The examples use the whoami jsonnet snippets in this repository as well.
-See the example [GitRepository](hack/manifests/git-repo.yaml) and [Konfiguration](hack/manifests/konfig.yaml).
+See the example [GitRepository](config/samples/kubecfg-operator-git-repository.yaml) and [Konfiguration](config/samples/whoami-source-controller-konfiguration.yaml).
 
 ---
 
