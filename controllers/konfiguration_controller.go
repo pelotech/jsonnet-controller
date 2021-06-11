@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -33,6 +34,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -80,26 +82,18 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 		return fmt.Errorf("failed setting index fields: %w", err)
 	}
 
-	log.Info("Subscribing to changes to Konfigurations")
-	c := ctrl.NewControllerManagedBy(mgr).
+	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.Konfiguration{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
-		))
-
-	log.Info("Subscribing to changes to GitRepositories")
-	c = c.Watches(
+		)).Watches(
 		&source.Kind{Type: &sourcev1.GitRepository{}},
 		handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.GitRepositoryIndexKey)),
 		builder.WithPredicates(SourceRevisionChangePredicate{}),
-	)
-	log.Info("Subscribing to changes to Buckets")
-	c = c.Watches(
+	).Watches(
 		&source.Kind{Type: &sourcev1.Bucket{}},
 		handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.BucketIndexKey)),
 		builder.WithPredicates(SourceRevisionChangePredicate{}),
-	)
-
-	return c.Complete(r)
+	).Complete(r)
 }
 
 // The below do not cover all needed rbac permissions. It should really be defined by the user
@@ -134,6 +128,21 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
+	// Add our finalizer if it does not exist
+	if !controllerutil.ContainsFinalizer(konfig, appsv1.KonfigurationFinalizer) {
+		reqLogger.Info("Registering finalizer to Konfiguration")
+		controllerutil.AddFinalizer(konfig, appsv1.KonfigurationFinalizer)
+		if err := r.Update(ctx, konfig); err != nil {
+			reqLogger.Error(err, "failed to register finalizer")
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Examine if the object is under deletion
+	if !konfig.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, reqLogger, konfig)
+	}
+
 	// Check if the konfiguration is suspended
 	if konfig.IsSuspended() {
 		return ctrl.Result{
@@ -141,60 +150,13 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}, nil
 	}
 
-	// Initially set paths to those defined in spec. If we are running
-	// against a source archive, they will be turned into absolute paths.
-	// Otherwises they are probably http(s):// paths.
-	path := konfig.GetPath()
-
-	// Check if there is a reference to a source. This is a stop-gap solution
-	// before full integration with source-controller.
-	if sourceRef := konfig.GetSourceRef(); sourceRef != nil {
-		source, err := sourceRef.GetSource(ctx, r.Client)
-		if client.IgnoreNotFound(err) == nil {
-			if err != nil {
-				reqLogger.Error(err, "Failed to fetch source for Konfiguration")
-				return ctrl.Result{
-					RequeueAfter: konfig.GetRetryInterval(),
-				}, nil
-			}
-		} else {
-			return ctrl.Result{}, err
-		}
-
-		// Check if the artifact is not ready yet
-		if source.GetArtifact() == nil {
-			// TODO: status updates
-			reqLogger.Info("Source is not ready, artifact not found")
-			return ctrl.Result{RequeueAfter: konfig.GetRetryInterval()}, nil
-		}
-
-		// Create a temp directory for the artifact
-		tmpDir, err := ioutil.TempDir("", konfig.GetName())
-		if err != nil {
-			reqLogger.Error(err, "Could not allocate a temp directory for source artifact")
-			return ctrl.Result{
-				RequeueAfter: konfig.GetRetryInterval(),
-			}, nil
-		}
-		defer os.RemoveAll(tmpDir)
-
-		// Download and extract the artifact
-		if err := r.downloadAndExtractTo(source.GetArtifact().URL, tmpDir); err != nil {
-			reqLogger.Error(err, "Failed to download source artifact")
-			return ctrl.Result{
-				RequeueAfter: konfig.GetRetryInterval(),
-			}, nil
-		}
-
-		path, err = securejoin.SecureJoin(tmpDir, path)
-		if err != nil {
-			reqLogger.Error(err, "Failed to format path relative to tmp directory")
-			return ctrl.Result{
-				RequeueAfter: konfig.GetRetryInterval(),
-			}, nil
-		}
-
+	path, clean, err := r.getSourceAndPath(ctx, reqLogger, konfig)
+	if err != nil {
+		return ctrl.Result{
+			RequeueAfter: konfig.GetRetryInterval(),
+		}, nil
 	}
+	defer clean()
 
 	// Do reconciliation
 	if err := r.reconcile(ctx, reqLogger, konfig, path); err != nil {
@@ -209,6 +171,57 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return ctrl.Result{
 		RequeueAfter: konfig.GetInterval(),
 	}, nil
+}
+
+func (r *KonfigurationReconciler) getSourceAndPath(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration) (path string, clean func(), err error) {
+	// Initially set paths to those defined in spec. If we are running
+	// against a source archive, they will be turned into absolute paths.
+	// Otherwises they are probably http(s):// paths.
+	path = konfig.GetPath()
+
+	// Check if there is a reference to a source. This is a stop-gap solution
+	// before full integration with source-controller.
+	if sourceRef := konfig.GetSourceRef(); sourceRef != nil {
+		var source sourcev1.Source
+
+		source, err = sourceRef.GetSource(ctx, r.Client)
+		if err != nil {
+			reqLogger.Error(err, "Failed to fetch source for Konfiguration")
+			return
+		}
+
+		// Check if the artifact is not ready yet
+		if source.GetArtifact() == nil {
+			// TODO: status updates
+			msg := "Source is not ready, artifact not found"
+			reqLogger.Info(msg)
+			err = errors.New(msg)
+			return
+		}
+
+		// Create a temp directory for the artifact
+		var tmpDir string
+		tmpDir, err = ioutil.TempDir("", konfig.GetName())
+		if err != nil {
+			reqLogger.Error(err, "Could not allocate a temp directory for source artifact")
+			return
+		}
+
+		// Download and extract the artifact
+		if err = r.downloadAndExtractTo(source.GetArtifact().URL, tmpDir); err != nil {
+			reqLogger.Error(err, "Failed to download source artifact")
+			return
+		}
+
+		path, err = securejoin.SecureJoin(tmpDir, path)
+		if err != nil {
+			reqLogger.Error(err, "Failed to format path relative to tmp directory")
+		}
+
+		clean = func() { os.RemoveAll(tmpDir) }
+	}
+
+	return
 }
 
 func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration, path string) error {
@@ -235,6 +248,37 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.
 	}
 
 	return nil
+}
+
+func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration) (ctrl.Result, error) {
+	// If the konfig had prunening enabled and wasn't suspended for deletion
+	// Run a kubecfg delete.
+	if konfig.GCEnabled() && !konfig.IsSuspended() {
+		path, clean, err := r.getSourceAndPath(ctx, reqLogger, konfig)
+		if err != nil {
+			return ctrl.Result{
+				RequeueAfter: konfig.GetRetryInterval(),
+			}, nil
+		}
+		defer clean()
+
+		if err := runKubecfgDelete(ctx, reqLogger, konfig, path); err != nil {
+			return ctrl.Result{
+				RequeueAfter: konfig.GetRetryInterval(),
+			}, nil
+		}
+	}
+
+	// TODO: record deleted status
+
+	// Remove our finalizer from the list and update it
+	controllerutil.RemoveFinalizer(konfig, appsv1.KonfigurationFinalizer)
+	if err := r.Update(ctx, konfig); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Stop reconciliation as the object is being deleted
+	return ctrl.Result{}, nil
 }
 
 func (r *KonfigurationReconciler) downloadAndExtractTo(artifactURL, tmpDir string) error {

@@ -24,3 +24,6 @@ const (
 	// based on their S3 sources.
 	BucketIndexKey string = ".metadata.bucket"
 )
+
+// KongifurationFinalizer is the finalizer placed on Konfiguration resources
+const KonfigurationFinalizer string = "finalizers.kubecfg.io"

@@ -92,6 +92,34 @@ func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfi
 	return nil
 }
 
+func runKubecfgDelete(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, path string) error {
+	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
+	defer cancel()
+
+	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToDeleteArgs(path)...)
+
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+
+	log.Info("Runing kubecfg delete", "Command", cmd.String())
+
+	err := cmd.Run()
+
+	if err != nil {
+		exitErr, ok := err.(*exec.ExitError)
+		if !ok {
+			return err
+		}
+		log.Info(fmt.Sprintf("Process exited with a non-zero status of %d", exitErr.ProcessState.ExitCode()))
+		log.Info("Error executing command", "Stdout", stdoutBuf.String(), "Stderr", sanitizeStderr(&stderrBuf))
+		return exitErr
+	}
+
+	log.Info("Process completed successfully", "Stdout", stdoutBuf.String(), "Stderr", sanitizeStderr(&stderrBuf))
+	return nil
+}
+
 func sanitizeStderr(buf *bytes.Buffer) string {
 	scanner := bufio.NewScanner(buf)
 	lines := make([]string, 0)

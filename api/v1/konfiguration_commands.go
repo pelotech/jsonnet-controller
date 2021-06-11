@@ -60,6 +60,16 @@ func (k *Konfiguration) ToUpdateArgs(path string, dryRun bool) []string {
 	return args
 }
 
+// ToDeleteArgs converts this Konfiguration into kubecfg delete arguments.
+func (k *Konfiguration) ToDeleteArgs(path string) []string {
+	args := k.newArgs("delete")
+	if vars := k.GetVariables(); vars != nil {
+		args = vars.AppendToArgs(args)
+	}
+	args = append(args, path)
+	return args
+}
+
 // ToDiffArgs converts this Konfiguration schema into kubecfg diff arguments.
 func (k *Konfiguration) ToDiffArgs(path string) []string {
 	args := k.newArgs("diff")

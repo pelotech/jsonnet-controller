@@ -109,7 +109,7 @@ rm -rf $$TMP_DIR ;\
 endef
 
 
-## BEGIN CUSTOM TARGETS
+## BEGIN CUSTOM TARGETS ##
 
 
 license-headers:
@@ -131,16 +131,20 @@ SOURCE_VER   ?= v0.14.0
 K3S_IMG      ?= rancher/k3s:$(K8S_VER)-k3s1
 CONTEXT      ?= k3d-$(CLUSTER_NAME)
 
-K3D_CLUSTER_ARGS ?=
+K3D_CLUSTER_ARGS       ?=
+# Comment this out if you want to. On Linux kernels > 5.11 there is an issue with k3s kubelet and configuring nf_conntrack.
+# https://k3d.io/faq/faq/#nodes-fail-to-start-or-get-stuck-in-notready-state-with-log-nf_conntrack_max-permission-denied
+K3D_CONNTRACK_FIX_ARGS = --k3s-server-arg --kube-proxy-arg=conntrack-max-per-core=0 --k3s-agent-arg --kube-proxy-arg=conntrack-max-per-core=0
 
 cluster: ## Create a local cluster with k3d
-	$(K3D) $(K3D_CLUSTER_ARGS) --image $(K3S_IMG) \
+	$(K3D) $(K3D_CONNTRACK_FIX_ARGS) $(K3D_CLUSTER_ARGS) \
+		--image $(K3S_IMG) \
 		cluster create $(CLUSTER_NAME)
 
 flux-crds: ## Install the flux source-controller CRDs to the k3d cluster.
 	$(KUBECTL) apply --context=$(CONTEXT) \
-		-f https://raw.githubusercontent.com/fluxcd/source-controller/${SOURCE_VER}/config/crd/bases/source.toolkit.fluxcd.io_gitrepositories.yaml \
-	 	-f https://raw.githubusercontent.com/fluxcd/source-controller/${SOURCE_VER}/config/crd/bases/source.toolkit.fluxcd.io_buckets.yaml
+		-f https://raw.githubusercontent.com/fluxcd/source-controller/$(SOURCE_VER)/config/crd/bases/source.toolkit.fluxcd.io_gitrepositories.yaml \
+	 	-f https://raw.githubusercontent.com/fluxcd/source-controller/$(SOURCE_VER)/config/crd/bases/source.toolkit.fluxcd.io_buckets.yaml
 
 flux-full-install: ## Install flux and all its components to the k3d cluster.
 	$(FLUX) --context=$(CONTEXT) check --pre
