@@ -1,14 +1,8 @@
 local whoami = import './whoami-simple.jsonnet';
 
 whoami {
-    local this = self,
-
-    port:: 8081,
     name:: 'whoami-two',
-    labels:: {
-        app: this.name,
-        release: 'development'
-    },
+    port:: 8081,
 
-    deployment+: { spec+: { replicas: 2 } }
+    app+: { deployment+: { spec+: { replicas: 2 } } }
 }
