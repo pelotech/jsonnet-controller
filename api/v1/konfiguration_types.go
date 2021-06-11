@@ -167,6 +167,7 @@ type KonfigurationStatus struct {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="CurrentRevision",type="string",JSONPath=".status.lastAppliedRevision",priority=1
+// +kubebuilder:printcolumn:name="Checksum",type="string",JSONPath=".status.snapshot.checksum",priority=1
 // +kubebuilder:printcolumn:name="LastAttemptedRevision",type="string",JSONPath=".status.lastAttemptedRevision",priority=1
 
 // Konfiguration is the Schema for the konfigurations API

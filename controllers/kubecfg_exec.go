@@ -28,6 +28,31 @@ import (
 	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
+func runKubecfgShow(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, path string) ([]byte, error) {
+	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
+	defer cancel()
+
+	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToShowArgs(path)...)
+	var outBuf, errBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
+
+	log.Info("Running kubecfg show", "Command", cmd.String())
+	err := cmd.Run()
+
+	if err != nil {
+		exitErr, ok := err.(*exec.ExitError)
+		if !ok {
+			return nil, err
+		}
+		log.Info(fmt.Sprintf("Process exited with a non-zero status of %d", exitErr.ProcessState.ExitCode()))
+		log.Info("Error executing command", "Stdout", outBuf.String(), "Stderr", sanitizeStderr(&errBuf))
+		return nil, fmt.Errorf("kubecfg show failed: %s", exitErr.Error())
+	}
+
+	return outBuf.Bytes(), nil
+}
+
 func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, path string) (updateRequired bool, err error) {
 	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()

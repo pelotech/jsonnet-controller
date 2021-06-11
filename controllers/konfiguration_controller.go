@@ -170,6 +170,19 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 	defer clean()
 
+	manifests, checksum, err := r.computeChecksum(ctx, reqLogger, konfig, path)
+	if err != nil {
+		konfig.SetNotReady(revision, appsv1.BuildFailedReason, err.Error())
+		if patchErr := r.patchStatus(ctx, req, konfig.Status); patchErr != nil {
+			reqLogger.Error(patchErr, "unable to update status after error")
+			return ctrl.Result{Requeue: true}, err
+		}
+		reqLogger.Error(err, "Error while computing a checksum of the manifests")
+		return ctrl.Result{
+			RequeueAfter: konfig.GetRetryInterval(),
+		}, nil
+	}
+
 	// Do reconciliation
 	reconcileErr := r.reconcile(ctx, reqLogger, konfig, revision, path)
 	if reconcileErr != nil {
@@ -183,8 +196,22 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}, nil
 	}
 
-	// Set readiness
-	konfig.SetReady(nil, revision, meta.ReconciliationSucceededReason, fmt.Sprintf("Applied revision: %s", revision))
+	// Compute a snapshot of the manifests
+	snapshot, err := appsv1.NewSnapshot(manifests, checksum)
+	if err != nil {
+		konfig.SetNotReady(revision, meta.ReconciliationFailedReason, err.Error())
+		if err := r.patchStatus(ctx, req, konfig.Status); err != nil {
+			reqLogger.Error(err, "unable to update status after failed snapshot")
+			return ctrl.Result{Requeue: true}, err
+		}
+		reqLogger.Error(err, "Error creating snapshot of deployment")
+		return ctrl.Result{
+			RequeueAfter: konfig.GetRetryInterval(),
+		}, nil
+	}
+
+	// Set the konfiguration as ready
+	konfig.SetReady(snapshot, revision, meta.ReconciliationSucceededReason, fmt.Sprintf("Applied revision: %s", revision))
 	if err := r.patchStatus(ctx, req, konfig.Status); err != nil {
 		reqLogger.Error(err, "unable to update status after reconciling")
 		return ctrl.Result{Requeue: true}, err

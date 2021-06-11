@@ -35,6 +35,10 @@ spec:
       name: CurrentRevision
       priority: 1
       type: string
+    - jsonPath: .status.snapshot.checksum
+      name: Checksum
+      priority: 1
+      type: string
     - jsonPath: .status.lastAttemptedRevision
       name: LastAttemptedRevision
       priority: 1

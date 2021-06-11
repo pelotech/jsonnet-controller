@@ -29,10 +29,18 @@ func (k *Konfiguration) newArgs(cmd string) []string {
 	return args
 }
 
+func (k *Konfiguration) varsArgs(cmd string) []string {
+	args := k.newArgs(cmd)
+	if vars := k.GetVariables(); vars != nil {
+		args = vars.AppendToArgs(args)
+	}
+	return args
+}
+
 // ToUpdateArgs converts this Konfiguration schema into kubecfg update
 // arguments.
 func (k *Konfiguration) ToUpdateArgs(path string, dryRun bool) []string {
-	args := k.newArgs("update")
+	args := k.varsArgs("update")
 
 	// Check if we are adding garbage collection flags.
 	if k.GCEnabled() {
@@ -45,11 +53,6 @@ func (k *Konfiguration) ToUpdateArgs(path string, dryRun bool) []string {
 		args = append(args, "--validate=false")
 	}
 
-	// Check if defining external or top-level arguments.
-	if vars := k.GetVariables(); vars != nil {
-		args = vars.AppendToArgs(args)
-	}
-
 	if dryRun {
 		args = append(args, "--dry-run")
 	}
@@ -60,12 +63,16 @@ func (k *Konfiguration) ToUpdateArgs(path string, dryRun bool) []string {
 	return args
 }
 
+// ToShowArgs convert this Konfiguration to show arguments.
+func (k *Konfiguration) ToShowArgs(path string) []string {
+	args := k.varsArgs("show")
+	args = append(args, path)
+	return args
+}
+
 // ToDeleteArgs converts this Konfiguration into kubecfg delete arguments.
 func (k *Konfiguration) ToDeleteArgs(path string) []string {
-	args := k.newArgs("delete")
-	if vars := k.GetVariables(); vars != nil {
-		args = vars.AppendToArgs(args)
-	}
+	args := k.varsArgs("delete")
 	args = append(args, path)
 	return args
 }
