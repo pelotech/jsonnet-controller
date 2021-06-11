@@ -12,7 +12,7 @@ function(
     ingress_class='') {
     local this = self,
 
-    labels:: { app: name, image: image },
+    labels:: { app: name, image: std.strReplace(image, '/', '_') },
 
     deployment: kube.Deployment(name + '-deployment') {
         local deployment = self,
