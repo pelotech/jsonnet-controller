@@ -17,7 +17,7 @@ import (
 	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
-type ObjectSorter []unstructured.Unstructured
+type ObjectSorter []*unstructured.Unstructured
 
 func (o ObjectSorter) Len() int      { return len(o) }
 func (o ObjectSorter) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
@@ -47,9 +47,11 @@ func (k *KonfigurationReconciler) computeChecksum(ctx context.Context, log logr.
 			if err != nil {
 				return nil, "", err
 			}
-			objects = append(objects, objList.Items...)
+			for _, o := range objList.Items {
+				objects = append(objects, &o)
+			}
 		} else {
-			objects = append(objects, obj)
+			objects = append(objects, &obj)
 		}
 	}
 
@@ -58,6 +60,9 @@ func (k *KonfigurationReconciler) computeChecksum(ctx context.Context, log logr.
 	sortedStream := "---\n"
 
 	for i, obj := range objects {
+		if obj.GetNamespace() == "" {
+			obj.SetNamespace(konfig.GetNamespace())
+		}
 		out, err := goyaml.Marshal(obj.Object)
 		if err != nil {
 			return nil, "", err
@@ -66,7 +71,7 @@ func (k *KonfigurationReconciler) computeChecksum(ctx context.Context, log logr.
 		if i == len(objects)-1 {
 			break
 		}
-		sortedStream += "\n---"
+		sortedStream += "\n---\n"
 	}
 
 	h := sha1.New()
