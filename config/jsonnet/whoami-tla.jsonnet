@@ -1,6 +1,5 @@
 // A simple whoami application that can be configured with top-level arguments.
 local kube = import 'https://github.com/bitnami-labs/kube-libsonnet/raw/v1.14.6/kube.libsonnet';
-local pelotech = import 'https://github.com/pelotech/pelotech-libsonnet/raw/main/lib/pelotech.libsonnet';
 
 function(
     name, 
@@ -49,9 +48,25 @@ function(
         spec+: { type: 'ClusterIP' },
     },
 
-    ingress: if expose then pelotech.SimpleIngress(name + '-ingress') {
-        apiVersion: 'networking.k8s.io/v1',
-        target_service:: this.service,
-        values+:: { hosts: [ { name: hostname } ], ingress_class: ingress_class }
+    ingress: if expose then kube._Object('networking.k8s.io/v1', 'Ingress', name + '-ingress') {
+        metadata+: { labels: this.labels },
+        spec: {
+            rules: [
+                {
+                    host: hostname,
+                    http: {
+                        paths: [ 
+                            { 
+                                path: '/', 
+                                pathType: 'Prefix',
+                                backend: { 
+                                    service: { name: this.service.metadata.name, port:  { name: 'http' } } 
+                                } 
+                            } 
+                        ],
+                    },
+                },
+            ],
+        },
     }
 }
