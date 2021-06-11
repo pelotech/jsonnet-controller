@@ -57,7 +57,7 @@ func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfigu
 		return true, nil
 	}
 
-	return false, fmt.Errorf("Diff exited with non-zero/non-ten status %d, stdout: %s : stderr: %s", exitErr.ProcessState.ExitCode(), outBuf.String(), errBuf.String())
+	return false, fmt.Errorf("diff exited with non-zero/non-ten status %d, stdout: %s : stderr: %s", exitErr.ProcessState.ExitCode(), outBuf.String(), errBuf.String())
 }
 
 func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, path string, dryRun bool) error {
@@ -85,7 +85,7 @@ func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfi
 		}
 		log.Info(fmt.Sprintf("Process exited with a non-zero status of %d", exitErr.ProcessState.ExitCode()))
 		log.Info("Error executing command", "Stdout", stdoutBuf.String(), "Stderr", sanitizeStderr(&stderrBuf))
-		return exitErr
+		return fmt.Errorf("kubecfg update [dry-run=%v] failed: %s", dryRun, exitErr.Error())
 	}
 
 	log.Info("Process completed successfully", "Stdout", stdoutBuf.String(), "Stderr", sanitizeStderr(&stderrBuf))
@@ -113,7 +113,7 @@ func runKubecfgDelete(ctx context.Context, log logr.Logger, konfig *appsv1.Konfi
 		}
 		log.Info(fmt.Sprintf("Process exited with a non-zero status of %d", exitErr.ProcessState.ExitCode()))
 		log.Info("Error executing command", "Stdout", stdoutBuf.String(), "Stderr", sanitizeStderr(&stderrBuf))
-		return exitErr
+		return fmt.Errorf("kubecfg delete failed: %s", exitErr.Error())
 	}
 
 	log.Info("Process completed successfully", "Stdout", stdoutBuf.String(), "Stderr", sanitizeStderr(&stderrBuf))

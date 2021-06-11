@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Avi Zimmerman.
+Copyright 2021 Pelotech.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/predicates"
 	"github.com/fluxcd/pkg/untar"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
@@ -150,8 +151,19 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}, nil
 	}
 
-	path, clean, err := r.getSourceAndPath(ctx, reqLogger, konfig)
+	// set the status to progressing
+	konfig.SetProgressing()
+	if err := r.patchStatus(ctx, req, konfig.Status); err != nil {
+		reqLogger.Error(err, "unable to update status to progressing")
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	revision, path, clean, err := r.getSourceAndPath(ctx, reqLogger, konfig)
 	if err != nil {
+		if patchErr := r.patchStatus(ctx, req, konfig.Status); patchErr != nil {
+			reqLogger.Error(patchErr, "unable to update status for source artifact fetch failure")
+			return ctrl.Result{Requeue: true}, err
+		}
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
 		}, nil
@@ -159,25 +171,36 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	defer clean()
 
 	// Do reconciliation
-	if err := r.reconcile(ctx, reqLogger, konfig, path); err != nil {
+	reconcileErr := r.reconcile(ctx, reqLogger, konfig, revision, path)
+	if reconcileErr != nil {
+		if err := r.patchStatus(ctx, req, konfig.Status); err != nil {
+			reqLogger.Error(err, "unable to update status after reconciling")
+			return ctrl.Result{Requeue: true}, err
+		}
 		reqLogger.Error(err, "Error during reconciliation")
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
 		}, nil
 	}
 
-	// TODO: Update status
+	// Set readiness
+	konfig.SetReady(nil, revision, meta.ReconciliationSucceededReason, fmt.Sprintf("Applied revision: %s", revision))
+	if err := r.patchStatus(ctx, req, konfig.Status); err != nil {
+		reqLogger.Error(err, "unable to update status after reconciling")
+		return ctrl.Result{Requeue: true}, err
+	}
 
 	return ctrl.Result{
 		RequeueAfter: konfig.GetInterval(),
 	}, nil
 }
 
-func (r *KonfigurationReconciler) getSourceAndPath(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration) (path string, clean func(), err error) {
+func (r *KonfigurationReconciler) getSourceAndPath(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration) (revision, path string, clean func(), err error) {
 	// Initially set paths to those defined in spec. If we are running
 	// against a source archive, they will be turned into absolute paths.
 	// Otherwises they are probably http(s):// paths.
 	path = konfig.GetPath()
+	revision = path
 
 	// Check if there is a reference to a source. This is a stop-gap solution
 	// before full integration with source-controller.
@@ -186,35 +209,43 @@ func (r *KonfigurationReconciler) getSourceAndPath(ctx context.Context, reqLogge
 
 		source, err = sourceRef.GetSource(ctx, r.Client)
 		if err != nil {
+			msg := fmt.Sprintf("Source '%s' not found", konfig.Spec.SourceRef.String())
+			konfig.SetNotReady("", appsv1.ArtifactFailedReason, msg)
 			reqLogger.Error(err, "Failed to fetch source for Konfiguration")
 			return
 		}
 
 		// Check if the artifact is not ready yet
 		if source.GetArtifact() == nil {
-			// TODO: status updates
-			msg := "Source is not ready, artifact not found"
+			msg := "source is not ready, artifact not found"
+			konfig.SetNotReady("", appsv1.ArtifactFailedReason, msg)
 			reqLogger.Info(msg)
 			err = errors.New(msg)
 			return
 		}
 
+		artifact := source.GetArtifact()
+		revision = artifact.Revision
+
 		// Create a temp directory for the artifact
 		var tmpDir string
 		tmpDir, err = ioutil.TempDir("", konfig.GetName())
 		if err != nil {
+			konfig.SetNotReady(artifact.Revision, sourcev1.StorageOperationFailedReason, err.Error())
 			reqLogger.Error(err, "Could not allocate a temp directory for source artifact")
 			return
 		}
 
 		// Download and extract the artifact
-		if err = r.downloadAndExtractTo(source.GetArtifact().URL, tmpDir); err != nil {
+		if err = r.downloadAndExtractTo(artifact.URL, tmpDir); err != nil {
+			konfig.SetNotReady(artifact.Revision, appsv1.ArtifactFailedReason, err.Error())
 			reqLogger.Error(err, "Failed to download source artifact")
 			return
 		}
 
 		path, err = securejoin.SecureJoin(tmpDir, path)
 		if err != nil {
+			konfig.SetNotReady(artifact.Revision, appsv1.ArtifactFailedReason, err.Error())
 			reqLogger.Error(err, "Failed to format path relative to tmp directory")
 		}
 
@@ -224,10 +255,12 @@ func (r *KonfigurationReconciler) getSourceAndPath(ctx context.Context, reqLogge
 	return
 }
 
-func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration, path string) error {
-	// Run a diff first to determine if any actions are necessary
+func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration, revision, path string) error {
+	// Run a diff first to determine if any actions are necessary - this also
+	// makes sure it builds
 	updateRequired, err := runKubecfgDiff(ctx, reqLogger, konfig, path)
 	if err != nil {
+		konfig.SetNotReady(revision, appsv1.BuildFailedReason, err.Error())
 		return err
 	}
 
@@ -237,13 +270,15 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.
 		return nil
 	}
 
-	// Run a dry-run
+	// Run a dry-run - is also validation to some extant but this should all be cleaned up
 	if err := runKubecfgUpdate(ctx, reqLogger, konfig, path, true); err != nil {
+		konfig.SetNotReady(revision, appsv1.ValidationFailedReason, err.Error())
 		return err
 	}
 
 	// Run an update
 	if err := runKubecfgUpdate(ctx, reqLogger, konfig, path, false); err != nil {
+		konfig.SetNotReady(revision, meta.ReconciliationFailedReason, err.Error())
 		return err
 	}
 
@@ -254,7 +289,7 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, reqLogger
 	// If the konfig had prunening enabled and wasn't suspended for deletion
 	// Run a kubecfg delete.
 	if konfig.GCEnabled() && !konfig.IsSuspended() {
-		path, clean, err := r.getSourceAndPath(ctx, reqLogger, konfig)
+		_, path, clean, err := r.getSourceAndPath(ctx, reqLogger, konfig)
 		if err != nil {
 			return ctrl.Result{
 				RequeueAfter: konfig.GetRetryInterval(),
@@ -268,8 +303,6 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, reqLogger
 			}, nil
 		}
 	}
-
-	// TODO: record deleted status
 
 	// Remove our finalizer from the list and update it
 	controllerutil.RemoveFinalizer(konfig, appsv1.KonfigurationFinalizer)
@@ -311,4 +344,16 @@ func (r *KonfigurationReconciler) downloadAndExtractTo(artifactURL, tmpDir strin
 	}
 
 	return nil
+}
+
+func (r *KonfigurationReconciler) patchStatus(ctx context.Context, req ctrl.Request, newStatus appsv1.KonfigurationStatus) error {
+	var konfig appsv1.Konfiguration
+	if err := r.Get(ctx, req.NamespacedName, &konfig); err != nil {
+		return err
+	}
+
+	patch := client.MergeFrom(konfig.DeepCopy())
+	konfig.Status = newStatus
+
+	return r.Status().Patch(ctx, &konfig, patch)
 }

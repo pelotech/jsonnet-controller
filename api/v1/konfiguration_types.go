@@ -135,27 +135,6 @@ type Variables struct {
 	TLACode map[string]string `json:"tlaCode,omitempty"`
 }
 
-// CrossNamespaceSourceReference contains enough information to let you locate the
-// typed referenced object at cluster level
-type CrossNamespaceSourceReference struct {
-	// API version of the referent
-	// +optional
-	APIVersion string `json:"apiVersion,omitempty"`
-
-	// Kind of the referent
-	// +kubebuilder:validation:Enum=GitRepository;Bucket
-	// +required
-	Kind string `json:"kind"`
-
-	// Name of the referent
-	// +required
-	Name string `json:"name"`
-
-	// Namespace of the referent, defaults to the Konfiguration namespace
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
-}
-
 // KonfigurationStatus defines the observed state of Konfiguration
 type KonfigurationStatus struct {
 	// ObservedGeneration is the last reconciled generation.
@@ -181,12 +160,13 @@ type KonfigurationStatus struct {
 	Snapshot *Snapshot `json:"snapshot,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-//+kubebuilder:printColumn:name="LastAppliedRevision,type="string",JSONPath=".status.lastAppliedRevision",priority=0
-//+kubebuilder:printcolumn:name="LastAttemptedRevision",type="string",JSONPath=".status.lastAttemptedRevision",priority=1
-//+kubebuilder:printColumn:name="LastAppliedChecksum",type="string",JSONPath=".status.snapshot.checksum",priority=1
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="CurrentRevision",type="string",JSONPath=".status.lastAppliedRevision",priority=1
+// +kubebuilder:printcolumn:name="LastAttemptedRevision",type="string",JSONPath=".status.lastAttemptedRevision",priority=1
 
 // Konfiguration is the Schema for the konfigurations API
 type Konfiguration struct {

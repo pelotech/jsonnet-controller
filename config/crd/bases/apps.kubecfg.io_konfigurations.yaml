@@ -17,9 +17,19 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].message
+      name: Status
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    - jsonPath: .status.lastAppliedRevision
+      name: CurrentRevision
+      priority: 1
+      type: string
     - jsonPath: .status.lastAttemptedRevision
       name: LastAttemptedRevision
       priority: 1
