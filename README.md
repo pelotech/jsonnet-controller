@@ -53,10 +53,6 @@ k3d image import ghcr.io/pelotech/kubecfg-controller:latest
 
 # Deploy the manager and CRDs to the cluster using kubecfg.
 kubecfg update config/jsonnet/kubecfg-operator.jsonnet
-
-# To deploy the manager with support for flux's source-controller, run the 'overlay'
-# instead:
-kubecfg update config/jsonnet/kubecfg-operator-flux.jsonnet
 ```
 
 There is a very-simple example of a `Konfiguration` manifest [here](config/samples/whoami.yaml).
