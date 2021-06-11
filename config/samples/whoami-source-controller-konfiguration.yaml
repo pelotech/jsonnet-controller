@@ -8,7 +8,7 @@ spec:
   prune: true
   variables:
     tlaStr:
-      name: 'hello-world'
+      name: 'whoami'
     tlaCode:
       port: '8080'
   sourceRef:
