@@ -13,6 +13,11 @@ spec:
     kind: Konfiguration
     listKind: KonfigurationList
     plural: konfigurations
+    shortNames:
+    - konfig
+    - konfigs
+    - konf
+    - konfs
     singular: konfiguration
   scope: Namespaced
   versions:
