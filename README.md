@@ -8,6 +8,97 @@ This project is in very early stages proof-of-concept. Only `latest` images are 
 The ultimate goal is to finish integratating this project with the Flux [GitOps Toolkit APIs](https://fluxcd.io/docs/gitops-toolkit/), along
 with the existing functionality for absolute URLs.
 
+## Quickstart
+
+### Installing
+
+You can use either `kustomize` or `kubecfg` to install the controller and its CRDs.
+
+```bash
+# Using kubecfg - import and extend this file for modifications
+kubecfg update config/jsonnet/kubecfg-operator.jsonnet
+
+# Using kustomize
+cd config/manager
+## This is the current value, but if you want to change the image
+kustomize edit set image controller=ghcr.io/pelotech/kubecfg-controller:latest
+## Deploy
+kustomize build . | kubectl apply -f -
+```
+
+### Examples
+
+First (at the moment this is optional), define a `GitRepository` source for your `Konfiguration`:
+
+```yaml
+# config/samples/kubecfg-operator-git-repository.yaml
+apiVersion: source.toolkit.fluxcd.io/v1beta1
+kind: GitRepository
+metadata:
+  name: kubecfg-samples
+  namespace: flux-system
+spec:
+  interval: 30s
+  ref:
+    branch: main
+  url: https://github.com/pelotech/kubecfg-operator
+```
+
+Finally, create a `Konfiguration` for your application:
+
+```yaml
+# config/samples/whoami-source-controller-konfiguration.yaml
+apiVersion: apps.kubecfg.io/v1
+kind: Konfiguration
+metadata:
+  name: whoami
+spec:
+  interval: 30s
+  path: config/jsonnet/whoami-tla.jsonnet
+  prune: true
+  variables:
+    tlaStr:
+      name: 'whoami'
+    tlaCode:
+      port: '8080'
+  sourceRef:
+    kind: GitRepository
+    name: kubecfg-samples
+    namespace: flux-system
+```
+
+This may change, but for now you can choose to skip the `sourceRef` and supply a path to a remote file over HTTP(S).
+The file will be checked for changes at the provided interval.
+
+```yaml
+apiVersion: apps.kubecfg.io/v1
+kind: Konfiguration
+metadata:
+  name: whoami
+spec:
+  interval: 30s
+  path: https://raw.githubusercontent.com/pelotech/kubecfg-operator/main/config/jsonnet/whoami-tla.jsonnet
+  prune: true
+  variables:
+    tlaStr:
+      name: 'whoami'
+    tlaCode:
+      port: '8080'
+```
+
+You can watch the status of the `Konfiguration` with `kubectl`:
+
+```bash
+# Available names and shortnames are konfiguration(s), konfig(s), konf(s)
+$ kubectl get konfig
+NAME     READY   STATUS                                                            AGE
+whoami   True    Applied revision: main/0bceb3d69b046f51565a345f3105febbd7be62bd   1m32s
+
+$ kubectl get konfig -o wide
+NAME     READY   STATUS                                                            AGE    CURRENTREVISION                                 LASTATTEMPTEDREVISION
+whoami   True    Applied revision: main/0bceb3d69b046f51565a345f3105febbd7be62bd   1m38s   main/0bceb3d69b046f51565a345f3105febbd7be62bd   main/0bceb3d69b046f51565a345f3105febbd7be62bd
+```
+
 ## Development
 
 ### Building
@@ -32,7 +123,7 @@ make docker-build IMG=my.repo.com/kubecfg-controller:latest
 make docker-push
 ```
 
-### Installation/Testing
+### Local Testing
 
 The instructions below assume you are using [`k3d`](https://k3d.io) for running a local kubernetes cluster. The instructions will work mostly the same for `kind`, `minikube`, etc. as well.
 
