@@ -18,15 +18,15 @@ function(
         local deployment = self,
         metadata+: {
             labels: this.labels,
+            annotations: {
+                exposed: std.toString(expose),
+            },
         },
         spec+: {
             replicas: 1,
             template+: {
                 metadata+: { 
                     labels: this.labels,
-                    annotations: {
-                        exposed: std.toString(expose),
-                    },
                 },
                 spec+: {
                     securityContext: { runAsNonRoot: true },
