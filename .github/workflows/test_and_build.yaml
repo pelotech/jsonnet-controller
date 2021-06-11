@@ -37,8 +37,8 @@ jobs:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-          ${{ env.GITHUB_WORKSPACE }}/bin
-          ${{ env.GITHUB_WORKSPACE }}/testbin
+          /home/runner/work/kubecfg-operator/kubecfg-operator/testbin
+          /home/runner/work/kubecfg-operator/kubecfg-operator/bin
           
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
