@@ -1,17 +1,21 @@
 // A simple whoami application that can be configured with top-level arguments.
 local kube = import 'https://github.com/bitnami-labs/kube-libsonnet/raw/v1.14.6/kube.libsonnet';
+local pelotech = import 'https://github.com/pelotech/pelotech-libsonnet/raw/main/lib/pelotech.libsonnet';
 
 function(
     name, 
     port=8080,
     user=1000,
     image='containous/whoami',
-    pullPolicy='IfNotPresent') {
+    pullPolicy='IfNotPresent',
+    expose=false,
+    hostname='localhost',
+    ingress_class='') {
     local this = self,
 
-    labels:: { app: 'whoami' },
+    labels:: { app: name },
 
-    deployment: kube.Deployment('whoami-deployment') {
+    deployment: kube.Deployment(name + '-deployment') {
         local deployment = self,
         metadata+: {
             labels: this.labels,
@@ -39,9 +43,15 @@ function(
         },
     },
 
-    service: kube.Service('whoami-service') {
+    service: kube.Service(name + '-service') {
         metadata+: { labels: this.labels },
         target_pod: this.deployment.spec.template,
         spec+: { type: 'ClusterIP' },
     },
+
+    ingress: if expose then pelotech.SimpleIngress(name + '-ingress') {
+        apiVersion: 'networking.k8s.io/v1',
+        target_service:: this.service,
+        values+:: { hosts: [ { name: hostname } ], ingress_class: ingress_class }
+    }
 }
