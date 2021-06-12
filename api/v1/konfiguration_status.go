@@ -20,6 +20,8 @@ import (
 	"context"
 
 	"github.com/fluxcd/pkg/apis/meta"
+
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -46,14 +48,15 @@ func (k *Konfiguration) SetProgressing(ctx context.Context, cl client.Client) er
 	return k.patchStatus(ctx, cl, k.Status)
 }
 
-// func (k *Konfiguration) SetHealthiness(status metav1.ConditionStatus, reason, message string) {
-// 	switch len(k.Spec.HealthChecks) {
-// 	case 0:
-// 		apimeta.RemoveStatusCondition(k.GetStatusConditions(), HealthyCondition)
-// 	default:
-// 		meta.SetResourceCondition(k, HealthyCondition, status, reason, trimString(message, MaxConditionMessageLength))
-// 	}
-// }
+func (k *Konfiguration) SetHealthiness(ctx context.Context, cl client.Client, status metav1.ConditionStatus, statusMeta *StatusMeta) error {
+	switch len(k.Spec.HealthChecks) {
+	case 0:
+		apimeta.RemoveStatusCondition(k.GetStatusConditions(), HealthyCondition)
+	default:
+		meta.SetResourceCondition(k, HealthyCondition, status, statusMeta.Reason, trimString(statusMeta.Message, MaxConditionMessageLength))
+	}
+	return k.patchStatus(ctx, cl, k.Status)
+}
 
 // SetReadiness sets the ReadyCondition, ObservedGeneration, and LastAttemptedRevision,
 // on the Konfiguration.

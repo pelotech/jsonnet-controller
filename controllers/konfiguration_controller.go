@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -233,7 +234,16 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.Konfiguration, snapshot *appsv1.Snapshot, revision string, manifests []byte) error {
 	reqLogger := log.FromContext(ctx)
 
-	// Allocate a new temp directory for the generated manifest
+	kubeconfig, err := r.getKubeConfig(ctx, konfig)
+	if err != nil {
+		// Status updates and logging happen in getKubeConfig
+		return err
+	}
+	if kubeconfig != "" {
+		defer os.Remove(kubeconfig)
+	}
+
+	// Allocate a new temp directory for the generated manifests and/or kubeconfig
 	dir, err := ioutil.TempDir("", konfig.GetName())
 	if err != nil {
 		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, sourcev1.StorageOperationFailedReason, err.Error())); statusErr != nil {
@@ -255,7 +265,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.
 	}
 
 	// Run a diff first to determine if any actions are necessary
-	updateRequired, err := runKubecfgDiff(ctx, konfig, path)
+	updateRequired, err := runKubecfgDiff(ctx, konfig, path, kubeconfig)
 	if err != nil {
 		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, appsv1.ValidationFailedReason, err.Error())); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
@@ -269,7 +279,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.
 	}
 
 	// Run a dry-run - is also validation to some extant but this should all be cleaned up
-	if err := runKubecfgUpdate(ctx, konfig, path, true); err != nil {
+	if err := runKubecfgUpdate(ctx, konfig, path, true, kubeconfig); err != nil {
 		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, appsv1.ValidationFailedReason, err.Error())); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
@@ -277,7 +287,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.
 	}
 
 	// Run an update
-	if err := runKubecfgUpdate(ctx, konfig, path, false); err != nil {
+	if err := runKubecfgUpdate(ctx, konfig, path, false, kubeconfig); err != nil {
 		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
@@ -304,7 +314,18 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *a
 		}
 		defer clean()
 
-		if err := runKubecfgDelete(ctx, konfig, path); err != nil {
+		kubeconfig, err := r.getKubeConfig(ctx, konfig)
+		if err != nil {
+			// Status updates and logging happen in getKubeConfig
+			return ctrl.Result{
+				RequeueAfter: konfig.GetRetryInterval(),
+			}, err
+		}
+		if kubeconfig != "" {
+			defer os.Remove(kubeconfig)
+		}
+
+		if err := runKubecfgDelete(ctx, konfig, path, kubeconfig); err != nil {
 			r.event(ctx, konfig, &EventData{
 				Revision: konfig.Status.LastAppliedRevision,
 				Severity: events.EventSeverityError,

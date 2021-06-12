@@ -93,7 +93,9 @@ func (k *KonfigurationReconciler) build(ctx context.Context, konfig *appsv1.Konf
 	}
 
 	h := sha1.New()
-	io.WriteString(h, sortedStream)
+	if _, err := io.WriteString(h, sortedStream); err != nil {
+		return nil, "", err
+	}
 
 	return []byte(sortedStream), fmt.Sprintf("%x", h.Sum(nil)), nil
 }

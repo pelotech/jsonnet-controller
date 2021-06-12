@@ -17,6 +17,7 @@ Copyright 2021 Pelotech - Apache License, Version 2.0.
 package v1
 
 import (
+	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/dependency"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +30,7 @@ type KonfigurationSpec struct {
 	// DependsOn may contain a dependency.CrossNamespaceDependencyReference slice
 	// with references to Konfiguration resources that must be ready before this
 	// Konfiguration can be reconciled.
-	// NOTE: This is not yet implemented.
+	// NOTE: Not yet implemented.
 	// +optional
 	DependsOn []dependency.CrossNamespaceDependencyReference `json:"dependsOn,omitempty"`
 
@@ -45,7 +46,6 @@ type KonfigurationSpec struct {
 
 	// The KubeConfig for reconciling the Konfiguration on a remote cluster.
 	// Defaults to the in-cluster configuration.
-	// NOTE: This is not yet implemented.
 	// +optional
 	KubeConfig *KubeConfig `json:"kubeConfig,omitempty"`
 
@@ -69,6 +69,11 @@ type KonfigurationSpec struct {
 	// +required
 	Prune bool `json:"prune"`
 
+	// A list of resources to be included in the health assessment.
+	// NOTE: Not yet implemented.
+	// +optional
+	HealthChecks []meta.NamespacedObjectKindReference `json:"healthChecks,omitempty"`
+
 	// This flag tells the controller to suspend subsequent kubecfg executions,
 	// it does not apply to already started executions. Defaults to false.
 	// +optional
@@ -84,6 +89,7 @@ type KonfigurationSpec struct {
 	KubecfgArgs []string `json:"kubecfgArgs,omitempty"`
 
 	// Validate input against the server schema, defaults to true.
+	// NOTE: There isn't really a way to disable this yet.
 	// +kubebuilder:default:=true
 	// +optional
 	Validate bool `json:"validate,omitempty"`
@@ -98,6 +104,9 @@ type KonfigurationSpec struct {
 
 	// Force instructs the controller to recreate resources
 	// when patching fails due to an immutable field change.
+	// NOTE: kubecfg does not have this ability built-in. Will likely
+	// get solved when switching to applying manifets directly from build
+	// output.
 	// +kubebuilder:default:=false
 	// +optional
 	// Force bool `json:"force,omitempty"`

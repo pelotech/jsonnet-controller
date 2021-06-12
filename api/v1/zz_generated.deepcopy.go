@@ -21,6 +21,7 @@ limitations under the License.
 package v1
 
 import (
+	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/dependency"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -128,6 +129,11 @@ func (in *KonfigurationSpec) DeepCopyInto(out *KonfigurationSpec) {
 		in, out := &in.SourceRef, &out.SourceRef
 		*out = new(CrossNamespaceSourceReference)
 		**out = **in
+	}
+	if in.HealthChecks != nil {
+		in, out := &in.HealthChecks, &out.HealthChecks
+		*out = make([]meta.NamespacedObjectKindReference, len(*in))
+		copy(*out, *in)
 	}
 	if in.Timeout != nil {
 		in, out := &in.Timeout, &out.Timeout

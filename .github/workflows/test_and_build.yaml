@@ -68,6 +68,10 @@ jobs:
       run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
       if: ${{ github.event_name != 'pull_request' }}
 
+    # Run linting
+    - name: Run Lint
+      run: make lint
+
     # Run unit tests - this will also ensure code-generation is run
     - name: Run Unit Tests
       run: make test

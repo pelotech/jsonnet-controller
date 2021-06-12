@@ -66,8 +66,7 @@ spec:
               dependsOn:
                 description: 'DependsOn may contain a dependency.CrossNamespaceDependencyReference
                   slice with references to Konfiguration resources that must be ready
-                  before this Konfiguration can be reconciled. NOTE: This is not yet
-                  implemented.'
+                  before this Konfiguration can be reconciled. NOTE: Not yet implemented.'
                 items:
                   description: CrossNamespaceDependencyReference holds the reference
                     to a dependency.
@@ -92,13 +91,38 @@ spec:
                 - subset
                 - last-applied
                 type: string
+              healthChecks:
+                description: 'A list of resources to be included in the health assessment.
+                  NOTE: Not yet implemented.'
+                items:
+                  description: NamespacedObjectKindReference contains enough information
+                    to let you locate the typed referenced object in any namespace
+                  properties:
+                    apiVersion:
+                      description: API version of the referent, if not specified the
+                        Kubernetes preferred version will be used
+                      type: string
+                    kind:
+                      description: Kind of the referent
+                      type: string
+                    name:
+                      description: Name of the referent
+                      type: string
+                    namespace:
+                      description: Namespace of the referent, when not specified it
+                        acts as LocalObjectReference
+                      type: string
+                  required:
+                  - kind
+                  - name
+                  type: object
+                type: array
               interval:
                 description: The interval at which to reconcile the Konfiguration.
                 type: string
               kubeConfig:
-                description: 'The KubeConfig for reconciling the Konfiguration on
-                  a remote cluster. Defaults to the in-cluster configuration. NOTE:
-                  This is not yet implemented.'
+                description: The KubeConfig for reconciling the Konfiguration on a
+                  remote cluster. Defaults to the in-cluster configuration.
                 properties:
                   secretRef:
                     description: SecretRef holds the name to a secret that contains
@@ -173,8 +197,8 @@ spec:
                 type: string
               validate:
                 default: true
-                description: Validate input against the server schema, defaults to
-                  true.
+                description: 'Validate input against the server schema, defaults to
+                  true. NOTE: There isn''t really a way to disable this yet.'
                 type: boolean
               variables:
                 description: Variables to use when invoking kubecfg to render manifests.

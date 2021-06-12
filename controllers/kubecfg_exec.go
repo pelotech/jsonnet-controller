@@ -56,13 +56,18 @@ func runKubecfgShow(ctx context.Context, konfig *appsv1.Konfiguration, path stri
 	return outBuf.Bytes(), nil
 }
 
-func runKubecfgDiff(ctx context.Context, konfig *appsv1.Konfiguration, path string) (updateRequired bool, err error) {
+func runKubecfgDiff(ctx context.Context, konfig *appsv1.Konfiguration, path, kubeconfigPath string) (updateRequired bool, err error) {
 	log := log.FromContext(ctx)
 
 	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 
-	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToDiffArgs(path)...)
+	args := konfig.ToDiffArgs(path)
+	if kubeconfigPath != "" {
+		args = append(args, fmt.Sprintf("--kubeconfig=%s", kubeconfigPath))
+	}
+
+	cmd := exec.CommandContext(cmdCtx, "/kubecfg", args...)
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
@@ -90,13 +95,18 @@ func runKubecfgDiff(ctx context.Context, konfig *appsv1.Konfiguration, path stri
 	return false, fmt.Errorf("diff exited with non-zero/non-ten status %d, stdout: %s : stderr: %s", exitErr.ProcessState.ExitCode(), outBuf.String(), errBuf.String())
 }
 
-func runKubecfgUpdate(ctx context.Context, konfig *appsv1.Konfiguration, path string, dryRun bool) error {
+func runKubecfgUpdate(ctx context.Context, konfig *appsv1.Konfiguration, path string, dryRun bool, kubeconfigPath string) error {
 	log := log.FromContext(ctx)
 
 	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 
-	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToUpdateArgs(path, dryRun)...)
+	args := konfig.ToUpdateArgs(path, dryRun)
+	if kubeconfigPath != "" {
+		args = append(args, fmt.Sprintf("--kubeconfig=%s", kubeconfigPath))
+	}
+
+	cmd := exec.CommandContext(cmdCtx, "/kubecfg", args...)
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
@@ -124,13 +134,18 @@ func runKubecfgUpdate(ctx context.Context, konfig *appsv1.Konfiguration, path st
 	return nil
 }
 
-func runKubecfgDelete(ctx context.Context, konfig *appsv1.Konfiguration, path string) error {
+func runKubecfgDelete(ctx context.Context, konfig *appsv1.Konfiguration, path, kubeconfigPath string) error {
 	log := log.FromContext(ctx)
 
 	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 
-	cmd := exec.CommandContext(cmdCtx, "/kubecfg", konfig.ToDeleteArgs(path)...)
+	args := konfig.ToDeleteArgs(path)
+	if kubeconfigPath != "" {
+		args = append(args, fmt.Sprintf("--kubeconfig=%s", kubeconfigPath))
+	}
+
+	cmd := exec.CommandContext(cmdCtx, "/kubecfg", args...)
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
