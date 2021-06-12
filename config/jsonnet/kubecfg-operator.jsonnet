@@ -152,6 +152,9 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
                             command: ['/manager'],
                             args: [ '--leader-elect' ],
                             securityContext: { allowPrivilegeEscalation: false },
+                            env_: {
+                                POD_NAMESPACE: { fieldRef: { fieldPath: 'metadata.namespace' } }
+                            },
                             ports_+: {
                                 http: { containerPort: 8080 },
                             },

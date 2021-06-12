@@ -98,7 +98,7 @@ spec:
               kubeConfig:
                 description: 'The KubeConfig for reconciling the Konfiguration on
                   a remote cluster. Defaults to the in-cluster configuration. NOTE:
-                  This is not yet complete.'
+                  This is not yet implemented.'
                 properties:
                   secretRef:
                     description: SecretRef holds the name to a secret that contains

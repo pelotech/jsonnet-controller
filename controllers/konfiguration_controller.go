@@ -24,13 +24,18 @@ import (
 	"time"
 
 	"github.com/fluxcd/pkg/apis/meta"
+	"github.com/fluxcd/pkg/runtime/events"
+	"github.com/fluxcd/pkg/runtime/metrics"
 	"github.com/fluxcd/pkg/runtime/predicates"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	kuberecorder "k8s.io/client-go/tools/record"
+	"sigs.k8s.io/cli-utils/pkg/kstatus/polling"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -46,13 +51,18 @@ import (
 // KonfigurationReconciler reconciles a Konfiguration object
 type KonfigurationReconciler struct {
 	client.Client
-	Scheme     *runtime.Scheme
-	httpClient *retryablehttp.Client
-	opts       *ReconcilerOptions
+	Scheme                *runtime.Scheme
+	httpClient            *retryablehttp.Client
+	EventRecorder         kuberecorder.EventRecorder
+	ExternalEventRecorder *events.Recorder
+	MetricsRecorder       *metrics.Recorder
+	StatusPoller          *polling.StatusPoller
 }
 
 type ReconcilerOptions struct {
-	HTTPRetryMax int
+	MaxConcurrentReconciles int
+	HTTPRetryMax            int
+	// DependencyRequeueInterval time.Duration
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -64,7 +74,6 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 	httpClient.RetryMax = opts.HTTPRetryMax
 	httpClient.Logger = nil
 	r.httpClient = httpClient
-	r.opts = opts
 
 	// Index the Kustomizations by the GitRepository references they (may) point at.
 	if err := mgr.GetCache().IndexField(context.TODO(), &appsv1.Konfiguration{}, appsv1.GitRepositoryIndexKey,
@@ -89,6 +98,8 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 		&source.Kind{Type: &sourcev1.Bucket{}},
 		handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.BucketIndexKey)),
 		builder.WithPredicates(SourceRevisionChangePredicate{}),
+	).WithOptions(
+		controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles},
 	).Complete(r)
 }
 
@@ -189,6 +200,11 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	err = r.reconcile(ctx, konfig, snapshot, revision, manifests)
 	if err != nil {
 		reqLogger.Error(err, "Error during reconciliation")
+		r.event(ctx, konfig, &EventData{
+			Revision: revision,
+			Severity: events.EventSeverityError,
+			Message:  err.Error(),
+		})
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
 		}, nil
@@ -200,6 +216,15 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{Requeue: true}, err
 	}
 
+	reqLogger.Info(fmt.Sprintf("Reconcile finished, next run in %s", konfig.GetInterval().String()), "Revision", revision)
+	r.event(ctx, konfig, &EventData{
+		Revision: revision,
+		Severity: events.EventSeverityInfo,
+		Message:  "Update Complete",
+		Metadata: map[string]string{
+			"commit_status": "update",
+		},
+	})
 	return ctrl.Result{
 		RequeueAfter: konfig.GetInterval(),
 	}, nil
@@ -268,6 +293,11 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *a
 	if konfig.GCEnabled() && !konfig.IsSuspended() {
 		_, path, clean, err := r.prepareSource(ctx, konfig)
 		if err != nil {
+			r.event(ctx, konfig, &EventData{
+				Revision: konfig.Status.LastAppliedRevision,
+				Severity: events.EventSeverityError,
+				Message:  err.Error(),
+			})
 			return ctrl.Result{
 				RequeueAfter: konfig.GetRetryInterval(),
 			}, nil
@@ -275,6 +305,11 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *a
 		defer clean()
 
 		if err := runKubecfgDelete(ctx, konfig, path); err != nil {
+			r.event(ctx, konfig, &EventData{
+				Revision: konfig.Status.LastAppliedRevision,
+				Severity: events.EventSeverityError,
+				Message:  err.Error(),
+			})
 			return ctrl.Result{
 				RequeueAfter: konfig.GetRetryInterval(),
 			}, nil

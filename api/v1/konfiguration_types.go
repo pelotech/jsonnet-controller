@@ -45,7 +45,7 @@ type KonfigurationSpec struct {
 
 	// The KubeConfig for reconciling the Konfiguration on a remote cluster.
 	// Defaults to the in-cluster configuration.
-	// NOTE: This is not yet complete.
+	// NOTE: This is not yet implemented.
 	// +optional
 	KubeConfig *KubeConfig `json:"kubeConfig,omitempty"`
 
