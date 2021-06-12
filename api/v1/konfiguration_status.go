@@ -10,18 +10,29 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Copyright 2021 Avi Zimmerman - Apache License, Version 2.0.
- - Methods adapted from fluxcd/kustomize-controller to work on pointer receivers
+Copyright 2021 Pelotech - Apache License, Version 2.0.
+ - Methods adapted from fluxcd/kustomize-controller
 */
 
 package v1
 
 import (
+	"context"
+
 	"github.com/fluxcd/pkg/apis/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const MaxConditionMessageLength int = 20000
+
+type StatusMeta struct {
+	Revision, Reason, Message string
+}
+
+func NewStatusMeta(revision, reason, message string) *StatusMeta {
+	return &StatusMeta{Revision: revision, Reason: reason, Message: message}
+}
 
 // GetStatusConditions returns the status conditions for this resource.
 func (k *Konfiguration) GetStatusConditions() *[]metav1.Condition {
@@ -30,8 +41,9 @@ func (k *Konfiguration) GetStatusConditions() *[]metav1.Condition {
 
 // SetProgressing resets the conditions of this Kustomization to a single
 // ReadyCondition with status ConditionUnknown.
-func (k *Konfiguration) SetProgressing() {
+func (k *Konfiguration) SetProgressing(ctx context.Context, cl client.Client) error {
 	meta.SetResourceCondition(k, meta.ReadyCondition, metav1.ConditionUnknown, meta.ProgressingReason, "reconciliation in progress")
+	return k.patchStatus(ctx, cl, k.Status)
 }
 
 // func (k *Konfiguration) SetHealthiness(status metav1.ConditionStatus, reason, message string) {
@@ -45,34 +57,47 @@ func (k *Konfiguration) SetProgressing() {
 
 // SetReadiness sets the ReadyCondition, ObservedGeneration, and LastAttemptedRevision,
 // on the Konfiguration.
-func (k *Konfiguration) SetReadiness(status metav1.ConditionStatus, revision, reason, message string) {
-	meta.SetResourceCondition(k, meta.ReadyCondition, status, reason, trimString(message, MaxConditionMessageLength))
+func (k *Konfiguration) SetReadiness(ctx context.Context, cl client.Client, status metav1.ConditionStatus, statusMeta *StatusMeta) error {
+	meta.SetResourceCondition(k, meta.ReadyCondition, status, statusMeta.Reason, trimString(statusMeta.Message, MaxConditionMessageLength))
 	k.Status.ObservedGeneration = k.Generation
-	if revision != "" {
-		k.Status.LastAttemptedRevision = revision
+	if statusMeta.Revision != "" {
+		k.Status.LastAttemptedRevision = statusMeta.Revision
 	}
+	return k.patchStatus(ctx, cl, k.Status)
 }
 
 // SetNotReady registers a failed apply attempt of this Konfiguration.
-func (k *Konfiguration) SetNotReady(revision, reason, message string) {
-	k.SetReadiness(metav1.ConditionFalse, revision, reason, message)
+func (k *Konfiguration) SetNotReady(ctx context.Context, cl client.Client, meta *StatusMeta) error {
+	return k.SetReadiness(ctx, cl, metav1.ConditionFalse, meta)
 }
 
 // SetNotReadySnapshot registers a failed apply attempt of this Konfiguration,
 // including a Snapshot.
-func (k *Konfiguration) SetNotReadySnapshot(snapshot *Snapshot, revision, reason, message string) {
-	k.SetReadiness(metav1.ConditionFalse, revision, reason, message)
-	// k.SetHealthiness(metav1.ConditionFalse, reason, reason)
+func (k *Konfiguration) SetNotReadySnapshot(ctx context.Context, cl client.Client, snapshot *Snapshot, meta *StatusMeta) error {
 	k.Status.Snapshot = snapshot
-	k.Status.LastAttemptedRevision = revision
+	k.Status.LastAttemptedRevision = meta.Revision
+	// k.SetHealthiness(metav1.ConditionFalse, reason, reason)
+	return k.SetReadiness(ctx, cl, metav1.ConditionFalse, meta)
 }
 
 // SetReady registers a successful apply attempt of this Konfiguration.
-func (k *Konfiguration) SetReady(snapshot *Snapshot, revision, reason, message string) {
-	k.SetReadiness(metav1.ConditionTrue, revision, reason, message)
-	// k.SetHealthiness(metav1.ConditionTrue, reason, reason)
+func (k *Konfiguration) SetReady(ctx context.Context, cl client.Client, snapshot *Snapshot, meta *StatusMeta) error {
 	k.Status.Snapshot = snapshot
-	k.Status.LastAppliedRevision = revision
+	k.Status.LastAppliedRevision = meta.Revision
+	// k.SetHealthiness(metav1.ConditionTrue, reason, reason)
+	return k.SetReadiness(ctx, cl, metav1.ConditionTrue, meta)
+}
+
+func (k *Konfiguration) patchStatus(ctx context.Context, cl client.Client, newStatus KonfigurationStatus) error {
+	var konfig Konfiguration
+	if err := cl.Get(ctx, k.NamespacedName(), &konfig); err != nil {
+		return err
+	}
+
+	patch := client.MergeFrom(konfig.DeepCopy())
+	konfig.Status = newStatus
+
+	return cl.Status().Patch(ctx, &konfig, patch)
 }
 
 func trimString(str string, limit int) string {

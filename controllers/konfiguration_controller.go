@@ -152,28 +152,26 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// set the status to progressing
-	konfig.SetProgressing()
-	if err := r.patchStatus(ctx, req, konfig.Status); err != nil {
+	if err := konfig.SetProgressing(ctx, r.Client); err != nil {
 		reqLogger.Error(err, "unable to update status to progressing")
 		return ctrl.Result{Requeue: true}, err
 	}
 
+	// Get the revision and the path we are going to operate on
 	revision, path, clean, err := r.getSourceAndPath(ctx, reqLogger, konfig)
 	if err != nil {
-		if patchErr := r.patchStatus(ctx, req, konfig.Status); patchErr != nil {
-			reqLogger.Error(patchErr, "unable to update status for source artifact fetch failure")
-			return ctrl.Result{Requeue: true}, err
-		}
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
 		}, nil
 	}
 	defer clean()
 
+	// Compute a sorted list of manifests and a checksum
+	// TODO: Build snapshot and use these manifests for further reconciliation.
 	manifests, checksum, err := r.computeChecksum(ctx, reqLogger, konfig, path)
 	if err != nil {
-		konfig.SetNotReady(revision, appsv1.BuildFailedReason, err.Error())
-		if patchErr := r.patchStatus(ctx, req, konfig.Status); patchErr != nil {
+		meta := appsv1.NewStatusMeta(revision, appsv1.BuildFailedReason, err.Error())
+		if patchErr := konfig.SetNotReady(ctx, r.Client, meta); err != nil {
 			reqLogger.Error(patchErr, "unable to update status after error")
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -186,10 +184,6 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Do reconciliation
 	reconcileErr := r.reconcile(ctx, reqLogger, konfig, revision, path)
 	if reconcileErr != nil {
-		if err := r.patchStatus(ctx, req, konfig.Status); err != nil {
-			reqLogger.Error(err, "unable to update status after reconciling")
-			return ctrl.Result{Requeue: true}, err
-		}
 		reqLogger.Error(err, "Error during reconciliation")
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
@@ -199,10 +193,8 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Compute a snapshot of the manifests
 	snapshot, err := appsv1.NewSnapshot(manifests, checksum)
 	if err != nil {
-		konfig.SetNotReady(revision, meta.ReconciliationFailedReason, err.Error())
-		if err := r.patchStatus(ctx, req, konfig.Status); err != nil {
-			reqLogger.Error(err, "unable to update status after failed snapshot")
-			return ctrl.Result{Requeue: true}, err
+		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
 		reqLogger.Error(err, "Error creating snapshot of deployment")
 		return ctrl.Result{
@@ -211,9 +203,8 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Set the konfiguration as ready
-	konfig.SetReady(snapshot, revision, meta.ReconciliationSucceededReason, fmt.Sprintf("Applied revision: %s", revision))
-	if err := r.patchStatus(ctx, req, konfig.Status); err != nil {
-		reqLogger.Error(err, "unable to update status after reconciling")
+	msg := fmt.Sprintf("Applied revision: %s", revision)
+	if err := konfig.SetReady(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, meta.ReconciliationSucceededReason, msg)); err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
 
@@ -228,6 +219,7 @@ func (r *KonfigurationReconciler) getSourceAndPath(ctx context.Context, reqLogge
 	// Otherwises they are probably http(s):// paths.
 	path = konfig.GetPath()
 	revision = path
+	clean = func() {}
 
 	// Check if there is a reference to a source. This is a stop-gap solution
 	// before full integration with source-controller.
@@ -237,7 +229,9 @@ func (r *KonfigurationReconciler) getSourceAndPath(ctx context.Context, reqLogge
 		source, err = sourceRef.GetSource(ctx, r.Client)
 		if err != nil {
 			msg := fmt.Sprintf("Source '%s' not found", konfig.Spec.SourceRef.String())
-			konfig.SetNotReady("", appsv1.ArtifactFailedReason, msg)
+			if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta("", appsv1.ArtifactFailedReason, msg)); statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+			}
 			reqLogger.Error(err, "Failed to fetch source for Konfiguration")
 			return
 		}
@@ -245,7 +239,9 @@ func (r *KonfigurationReconciler) getSourceAndPath(ctx context.Context, reqLogge
 		// Check if the artifact is not ready yet
 		if source.GetArtifact() == nil {
 			msg := "source is not ready, artifact not found"
-			konfig.SetNotReady("", appsv1.ArtifactFailedReason, msg)
+			if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta("", appsv1.ArtifactFailedReason, msg)); statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+			}
 			reqLogger.Info(msg)
 			err = errors.New(msg)
 			return
@@ -258,21 +254,27 @@ func (r *KonfigurationReconciler) getSourceAndPath(ctx context.Context, reqLogge
 		var tmpDir string
 		tmpDir, err = ioutil.TempDir("", konfig.GetName())
 		if err != nil {
-			konfig.SetNotReady(artifact.Revision, sourcev1.StorageOperationFailedReason, err.Error())
+			if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(artifact.Revision, sourcev1.StorageOperationFailedReason, err.Error())); statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+			}
 			reqLogger.Error(err, "Could not allocate a temp directory for source artifact")
 			return
 		}
 
 		// Download and extract the artifact
 		if err = r.downloadAndExtractTo(artifact.URL, tmpDir); err != nil {
-			konfig.SetNotReady(artifact.Revision, appsv1.ArtifactFailedReason, err.Error())
+			if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(artifact.Revision, appsv1.ArtifactFailedReason, err.Error())); statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+			}
 			reqLogger.Error(err, "Failed to download source artifact")
 			return
 		}
 
 		path, err = securejoin.SecureJoin(tmpDir, path)
 		if err != nil {
-			konfig.SetNotReady(artifact.Revision, appsv1.ArtifactFailedReason, err.Error())
+			if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(artifact.Revision, appsv1.ArtifactFailedReason, err.Error())); statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+			}
 			reqLogger.Error(err, "Failed to format path relative to tmp directory")
 		}
 
@@ -287,7 +289,9 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.
 	// makes sure it builds
 	updateRequired, err := runKubecfgDiff(ctx, reqLogger, konfig, path)
 	if err != nil {
-		konfig.SetNotReady(revision, appsv1.BuildFailedReason, err.Error())
+		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, appsv1.BuildFailedReason, err.Error())); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
 		return err
 	}
 
@@ -299,13 +303,17 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.
 
 	// Run a dry-run - is also validation to some extant but this should all be cleaned up
 	if err := runKubecfgUpdate(ctx, reqLogger, konfig, path, true); err != nil {
-		konfig.SetNotReady(revision, appsv1.ValidationFailedReason, err.Error())
+		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, appsv1.ValidationFailedReason, err.Error())); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
 		return err
 	}
 
 	// Run an update
 	if err := runKubecfgUpdate(ctx, reqLogger, konfig, path, false); err != nil {
-		konfig.SetNotReady(revision, meta.ReconciliationFailedReason, err.Error())
+		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
 		return err
 	}
 
@@ -371,16 +379,4 @@ func (r *KonfigurationReconciler) downloadAndExtractTo(artifactURL, tmpDir strin
 	}
 
 	return nil
-}
-
-func (r *KonfigurationReconciler) patchStatus(ctx context.Context, req ctrl.Request, newStatus appsv1.KonfigurationStatus) error {
-	var konfig appsv1.Konfiguration
-	if err := r.Get(ctx, req.NamespacedName, &konfig); err != nil {
-		return err
-	}
-
-	patch := client.MergeFrom(konfig.DeepCopy())
-	konfig.Status = newStatus
-
-	return r.Status().Patch(ctx, &konfig, patch)
 }

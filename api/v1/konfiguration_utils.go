@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Avi Zimmerman.
+Copyright 2021 Pelotech.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// NamespacedName returns the namespaced name fr this Konfiguration.
+func (k *Konfiguration) NamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      k.GetName(),
+		Namespace: k.GetNamespace(),
+	}
+}
 
 // GetInterval returns the interval at which to reconcile the Konfiguration.
 func (k *Konfiguration) GetInterval() time.Duration { return k.Spec.Interval.Duration }

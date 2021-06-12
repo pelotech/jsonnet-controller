@@ -10,7 +10,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Copyright 2021 Avi Zimmerman - Apache License, Version 2.0.
+Copyright 2021 Pelotech - Apache License, Version 2.0.
  - API adapted for Kubecfg from fluxcd/kustomize-controller
 */
 
@@ -45,6 +45,7 @@ type KonfigurationSpec struct {
 
 	// The KubeConfig for reconciling the Konfiguration on a remote cluster.
 	// Defaults to the in-cluster configuration.
+	// NOTE: This is not yet complete.
 	// +optional
 	KubeConfig *KubeConfig `json:"kubeConfig,omitempty"`
 
@@ -60,8 +61,6 @@ type KonfigurationSpec struct {
 	Variables *Variables `json:"variables,omitempty"`
 
 	// Reference of the source where the jsonnet, json, or yaml file(s) are.
-	// NOTE: This is not finished yet, and only http(s) URLs in the `paths`
-	// field are supported.
 	// +optional
 	SourceRef *CrossNamespaceSourceReference `json:"sourceRef"`
 
