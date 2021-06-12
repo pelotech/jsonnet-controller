@@ -48,9 +48,15 @@ func (k *KonfigurationReconciler) computeChecksum(ctx context.Context, log logr.
 				return nil, "", err
 			}
 			for _, o := range objList.Items {
+				if o.GetNamespace() == "" {
+					o.SetNamespace(konfig.GetNamespace())
+				}
 				objects = append(objects, &o)
 			}
 		} else {
+			if obj.GetNamespace() == "" {
+				obj.SetNamespace(konfig.GetNamespace())
+			}
 			objects = append(objects, &obj)
 		}
 	}
@@ -60,9 +66,6 @@ func (k *KonfigurationReconciler) computeChecksum(ctx context.Context, log logr.
 	sortedStream := "---\n"
 
 	for i, obj := range objects {
-		if obj.GetNamespace() == "" {
-			obj.SetNamespace(konfig.GetNamespace())
-		}
 		out, err := goyaml.Marshal(obj.Object)
 		if err != nil {
 			return nil, "", err
