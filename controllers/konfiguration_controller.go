@@ -122,7 +122,6 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	konfig := &appsv1.Konfiguration{}
 	if err := r.Client.Get(ctx, req.NamespacedName, konfig); err != nil {
 		// Check if object was deleted
-		// TODO: Optional ownership of created resources?
 		if client.IgnoreNotFound(err) == nil {
 			return ctrl.Result{}, nil
 		}
@@ -167,15 +166,25 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	defer clean()
 
 	// Compute a sorted list of manifests and a checksum
-	// TODO: Build snapshot and use these manifests for further reconciliation.
-	manifests, checksum, err := r.computeChecksum(ctx, reqLogger, konfig, path)
+	manifests, checksum, err := r.build(ctx, reqLogger, konfig, path)
 	if err != nil {
 		meta := appsv1.NewStatusMeta(revision, appsv1.BuildFailedReason, err.Error())
-		if patchErr := konfig.SetNotReady(ctx, r.Client, meta); err != nil {
-			reqLogger.Error(patchErr, "unable to update status after error")
-			return ctrl.Result{Requeue: true}, err
+		if statusErr := konfig.SetNotReady(ctx, r.Client, meta); statusErr != nil {
+			reqLogger.Error(statusErr, "unable to update status after build error")
 		}
-		reqLogger.Error(err, "Error while computing a checksum of the manifests")
+		reqLogger.Error(err, "Error building the jsonnet")
+		return ctrl.Result{
+			RequeueAfter: konfig.GetRetryInterval(),
+		}, nil
+	}
+
+	// Compute a snapshot of the build output
+	snapshot, err := appsv1.NewSnapshot(manifests, checksum)
+	if err != nil {
+		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
+		reqLogger.Error(err, "Error creating snapshot of deployment")
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
 		}, nil
@@ -185,18 +194,6 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	reconcileErr := r.reconcile(ctx, reqLogger, konfig, revision, path)
 	if reconcileErr != nil {
 		reqLogger.Error(err, "Error during reconciliation")
-		return ctrl.Result{
-			RequeueAfter: konfig.GetRetryInterval(),
-		}, nil
-	}
-
-	// Compute a snapshot of the manifests
-	snapshot, err := appsv1.NewSnapshot(manifests, checksum)
-	if err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
-			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-		}
-		reqLogger.Error(err, "Error creating snapshot of deployment")
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
 		}, nil
@@ -296,7 +293,6 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.
 	}
 
 	// If no update required, check on the next interval.
-	// TODO: check status
 	if !updateRequired {
 		return nil
 	}
