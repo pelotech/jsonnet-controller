@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Avi Zimmerman.
+Copyright 2021 Pelotech.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@ limitations under the License.
 package v1
 
 import "fmt"
+
+// TODO: Since manifests are passed as raw yaml after "show" a lot of these can be
+// simplifid.
 
 func (k *Konfiguration) newArgs(cmd string) []string {
 	args := []string{cmd, "--cache-dir", "/cache", "--namespace", k.GetNamespace()}

@@ -90,7 +90,7 @@ func (k *Konfiguration) SetReady(ctx context.Context, cl client.Client, snapshot
 
 func (k *Konfiguration) patchStatus(ctx context.Context, cl client.Client, newStatus KonfigurationStatus) error {
 	var konfig Konfiguration
-	if err := cl.Get(ctx, k.NamespacedName(), &konfig); err != nil {
+	if err := cl.Get(ctx, k.GetNamespacedName(), &konfig); err != nil {
 		return err
 	}
 

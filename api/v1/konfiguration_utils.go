@@ -28,7 +28,7 @@ import (
 )
 
 // NamespacedName returns the namespaced name fr this Konfiguration.
-func (k *Konfiguration) NamespacedName() types.NamespacedName {
+func (k *Konfiguration) GetNamespacedName() types.NamespacedName {
 	return types.NamespacedName{
 		Name:      k.GetName(),
 		Namespace: k.GetNamespace(),

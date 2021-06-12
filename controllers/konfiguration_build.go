@@ -24,7 +24,6 @@ import (
 	"io"
 	"sort"
 
-	"github.com/go-logr/logr"
 	goyaml "gopkg.in/yaml.v2"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -42,8 +41,8 @@ func (o ObjectSorter) Less(i, j int) bool {
 		fmt.Sprintf("%s/%s", o[j].GetNamespace(), o[j].GetName())
 }
 
-func (k *KonfigurationReconciler) build(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, path string) ([]byte, string, error) {
-	showOutput, err := runKubecfgShow(ctx, log, konfig, path)
+func (k *KonfigurationReconciler) build(ctx context.Context, konfig *appsv1.Konfiguration, path string) ([]byte, string, error) {
+	showOutput, err := runKubecfgShow(ctx, konfig, path)
 	if err != nil {
 		return nil, "", err
 	}

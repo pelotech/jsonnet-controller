@@ -131,14 +131,14 @@ SOURCE_VER   ?= v0.14.0
 K3S_IMG      ?= rancher/k3s:$(K8S_VER)-k3s1
 CONTEXT      ?= k3d-$(CLUSTER_NAME)
 
-K3D_CLUSTER_ARGS       ?=
+
 # Comment this out if you want to. On Linux kernels > 5.11 there is an issue with k3s kubelet and configuring nf_conntrack.
 # https://k3d.io/faq/faq/#nodes-fail-to-start-or-get-stuck-in-notready-state-with-log-nf_conntrack_max-permission-denied
-K3D_CONNTRACK_FIX_ARGS = --k3s-server-arg --kube-proxy-arg=conntrack-max-per-core=0 --k3s-agent-arg --kube-proxy-arg=conntrack-max-per-core=0
+K3D_CONNTRACK_FIX_ARGS ?= --k3s-server-arg --kube-proxy-arg=conntrack-max-per-core=0 --k3s-agent-arg --kube-proxy-arg=conntrack-max-per-core=0
+K3D_CLUSTER_ARGS       ?= $(K3D_CONNTRACK_FIX_ARGS)
 
 cluster: ## Create a local cluster with k3d
-	$(K3D) $(K3D_CONNTRACK_FIX_ARGS) $(K3D_CLUSTER_ARGS) \
-		--image $(K3S_IMG) \
+	$(K3D) $(K3D_CLUSTER_ARGS) --image $(K3S_IMG) \
 		cluster create $(CLUSTER_NAME)
 
 flux-crds: ## Install the flux source-controller CRDs to the k3d cluster.
@@ -155,6 +155,13 @@ docker-load: docker-build ## Load the manager image into the k3d cluster.
 
 deploy: ## Deploy the manager and CRDs into the k3d cluster.
 	$(KUBECFG) --context=$(CONTEXT) update config/jsonnet/kubecfg-operator.jsonnet
+
+samples: ## Deploy the sample source-controller manifests into the cluster.
+	$(KUBECTL) apply --context=$(CONTEXT) \
+		-f config/samples/kubecfg-operator-git-repository.yaml \
+		-f config/samples/whoami-source-controller-konfiguration.yaml
+
+full-local-env: cluster flux-full-install docker-load deploy samples ## Creates a full local environment (cluster, flux-full-install, docker-load, deploy, samples).
 
 delete-cluster: ## Delete the k3d cluster.
 	$(K3D) cluster delete $(CLUSTER_NAME)

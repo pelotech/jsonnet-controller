@@ -24,11 +24,14 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
 	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
-func runKubecfgShow(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, path string) ([]byte, error) {
+func runKubecfgShow(ctx context.Context, konfig *appsv1.Konfiguration, path string) ([]byte, error) {
+	log := log.FromContext(ctx)
+
 	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 
@@ -53,7 +56,9 @@ func runKubecfgShow(ctx context.Context, log logr.Logger, konfig *appsv1.Konfigu
 	return outBuf.Bytes(), nil
 }
 
-func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, path string) (updateRequired bool, err error) {
+func runKubecfgDiff(ctx context.Context, konfig *appsv1.Konfiguration, path string) (updateRequired bool, err error) {
+	log := log.FromContext(ctx)
+
 	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 
@@ -85,7 +90,9 @@ func runKubecfgDiff(ctx context.Context, log logr.Logger, konfig *appsv1.Konfigu
 	return false, fmt.Errorf("diff exited with non-zero/non-ten status %d, stdout: %s : stderr: %s", exitErr.ProcessState.ExitCode(), outBuf.String(), errBuf.String())
 }
 
-func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, path string, dryRun bool) error {
+func runKubecfgUpdate(ctx context.Context, konfig *appsv1.Konfiguration, path string, dryRun bool) error {
+	log := log.FromContext(ctx)
+
 	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 
@@ -117,7 +124,9 @@ func runKubecfgUpdate(ctx context.Context, log logr.Logger, konfig *appsv1.Konfi
 	return nil
 }
 
-func runKubecfgDelete(ctx context.Context, log logr.Logger, konfig *appsv1.Konfiguration, path string) error {
+func runKubecfgDelete(ctx context.Context, konfig *appsv1.Konfiguration, path string) error {
+	log := log.FromContext(ctx)
+
 	cmdCtx, cancel := context.WithTimeout(ctx, konfig.GetTimeout())
 	defer cancel()
 

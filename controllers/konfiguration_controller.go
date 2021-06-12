@@ -18,17 +18,13 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"net/url"
-	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/predicates"
-	"github.com/fluxcd/pkg/untar"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,7 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-retryablehttp"
 
@@ -140,7 +135,7 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Examine if the object is under deletion
 	if !konfig.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, reqLogger, konfig)
+		return r.reconcileDelete(ctx, konfig)
 	}
 
 	// Check if the konfiguration is suspended
@@ -157,7 +152,7 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Get the revision and the path we are going to operate on
-	revision, path, clean, err := r.getSourceAndPath(ctx, reqLogger, konfig)
+	revision, path, clean, err := r.prepareSource(ctx, konfig)
 	if err != nil {
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
@@ -165,8 +160,8 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 	defer clean()
 
-	// Compute a sorted list of manifests and a checksum
-	manifests, checksum, err := r.build(ctx, reqLogger, konfig, path)
+	// Build the jsonnet and compute a checksum
+	manifests, checksum, err := r.build(ctx, konfig, path)
 	if err != nil {
 		meta := appsv1.NewStatusMeta(revision, appsv1.BuildFailedReason, err.Error())
 		if statusErr := konfig.SetNotReady(ctx, r.Client, meta); statusErr != nil {
@@ -178,21 +173,21 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}, nil
 	}
 
-	// Compute a snapshot of the build output
+	// Create a snapshot from the build output
 	snapshot, err := appsv1.NewSnapshot(manifests, checksum)
 	if err != nil {
 		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
-		reqLogger.Error(err, "Error creating snapshot of deployment")
+		reqLogger.Error(err, "Error creating snapshot of manifests")
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
 		}, nil
 	}
 
 	// Do reconciliation
-	reconcileErr := r.reconcile(ctx, reqLogger, konfig, revision, path)
-	if reconcileErr != nil {
+	err = r.reconcile(ctx, konfig, snapshot, revision, manifests)
+	if err != nil {
 		reqLogger.Error(err, "Error during reconciliation")
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
@@ -210,83 +205,34 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}, nil
 }
 
-func (r *KonfigurationReconciler) getSourceAndPath(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration) (revision, path string, clean func(), err error) {
-	// Initially set paths to those defined in spec. If we are running
-	// against a source archive, they will be turned into absolute paths.
-	// Otherwises they are probably http(s):// paths.
-	path = konfig.GetPath()
-	revision = path
-	clean = func() {}
+func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.Konfiguration, snapshot *appsv1.Snapshot, revision string, manifests []byte) error {
+	reqLogger := log.FromContext(ctx)
 
-	// Check if there is a reference to a source. This is a stop-gap solution
-	// before full integration with source-controller.
-	if sourceRef := konfig.GetSourceRef(); sourceRef != nil {
-		var source sourcev1.Source
-
-		source, err = sourceRef.GetSource(ctx, r.Client)
-		if err != nil {
-			msg := fmt.Sprintf("Source '%s' not found", konfig.Spec.SourceRef.String())
-			if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta("", appsv1.ArtifactFailedReason, msg)); statusErr != nil {
-				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-			}
-			reqLogger.Error(err, "Failed to fetch source for Konfiguration")
-			return
+	// Allocate a new temp directory for the generated manifest
+	dir, err := ioutil.TempDir("", konfig.GetName())
+	if err != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, sourcev1.StorageOperationFailedReason, err.Error())); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
-
-		// Check if the artifact is not ready yet
-		if source.GetArtifact() == nil {
-			msg := "source is not ready, artifact not found"
-			if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta("", appsv1.ArtifactFailedReason, msg)); statusErr != nil {
-				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-			}
-			reqLogger.Info(msg)
-			err = errors.New(msg)
-			return
-		}
-
-		artifact := source.GetArtifact()
-		revision = artifact.Revision
-
-		// Create a temp directory for the artifact
-		var tmpDir string
-		tmpDir, err = ioutil.TempDir("", konfig.GetName())
-		if err != nil {
-			if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(artifact.Revision, sourcev1.StorageOperationFailedReason, err.Error())); statusErr != nil {
-				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-			}
-			reqLogger.Error(err, "Could not allocate a temp directory for source artifact")
-			return
-		}
-
-		// Download and extract the artifact
-		if err = r.downloadAndExtractTo(artifact.URL, tmpDir); err != nil {
-			if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(artifact.Revision, appsv1.ArtifactFailedReason, err.Error())); statusErr != nil {
-				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-			}
-			reqLogger.Error(err, "Failed to download source artifact")
-			return
-		}
-
-		path, err = securejoin.SecureJoin(tmpDir, path)
-		if err != nil {
-			if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(artifact.Revision, appsv1.ArtifactFailedReason, err.Error())); statusErr != nil {
-				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-			}
-			reqLogger.Error(err, "Failed to format path relative to tmp directory")
-		}
-
-		clean = func() { os.RemoveAll(tmpDir) }
+		reqLogger.Info("Could not allocate a temp directory for the generated manifest")
+		return err
 	}
 
-	return
-}
+	// Write the manifest to the temp directory - kubecfg needs to know the file extension
+	// to know it's yaml at the moment.
+	path := filepath.Join(dir, "manifest.yaml")
+	if err := ioutil.WriteFile(path, manifests, 0600); err != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, sourcev1.StorageOperationFailedReason, err.Error())); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
+		reqLogger.Info("Could not write the generated manifest to disk")
+		return err
+	}
 
-func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration, revision, path string) error {
-	// Run a diff first to determine if any actions are necessary - this also
-	// makes sure it builds
-	updateRequired, err := runKubecfgDiff(ctx, reqLogger, konfig, path)
+	// Run a diff first to determine if any actions are necessary
+	updateRequired, err := runKubecfgDiff(ctx, konfig, path)
 	if err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, appsv1.BuildFailedReason, err.Error())); statusErr != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, appsv1.ValidationFailedReason, err.Error())); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
 		return err
@@ -298,16 +244,16 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.
 	}
 
 	// Run a dry-run - is also validation to some extant but this should all be cleaned up
-	if err := runKubecfgUpdate(ctx, reqLogger, konfig, path, true); err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, appsv1.ValidationFailedReason, err.Error())); statusErr != nil {
+	if err := runKubecfgUpdate(ctx, konfig, path, true); err != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, appsv1.ValidationFailedReason, err.Error())); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
 		return err
 	}
 
 	// Run an update
-	if err := runKubecfgUpdate(ctx, reqLogger, konfig, path, false); err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
+	if err := runKubecfgUpdate(ctx, konfig, path, false); err != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
 		return err
@@ -316,11 +262,11 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, reqLogger logr.
 	return nil
 }
 
-func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, reqLogger logr.Logger, konfig *appsv1.Konfiguration) (ctrl.Result, error) {
+func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *appsv1.Konfiguration) (ctrl.Result, error) {
 	// If the konfig had prunening enabled and wasn't suspended for deletion
 	// Run a kubecfg delete.
 	if konfig.GCEnabled() && !konfig.IsSuspended() {
-		_, path, clean, err := r.getSourceAndPath(ctx, reqLogger, konfig)
+		_, path, clean, err := r.prepareSource(ctx, konfig)
 		if err != nil {
 			return ctrl.Result{
 				RequeueAfter: konfig.GetRetryInterval(),
@@ -328,7 +274,7 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, reqLogger
 		}
 		defer clean()
 
-		if err := runKubecfgDelete(ctx, reqLogger, konfig, path); err != nil {
+		if err := runKubecfgDelete(ctx, konfig, path); err != nil {
 			return ctrl.Result{
 				RequeueAfter: konfig.GetRetryInterval(),
 			}, nil
@@ -343,36 +289,4 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, reqLogger
 
 	// Stop reconciliation as the object is being deleted
 	return ctrl.Result{}, nil
-}
-
-func (r *KonfigurationReconciler) downloadAndExtractTo(artifactURL, tmpDir string) error {
-	if hostname := os.Getenv("SOURCE_CONTROLLER_LOCALHOST"); hostname != "" {
-		u, err := url.Parse(artifactURL)
-		if err != nil {
-			return err
-		}
-		u.Host = hostname
-		artifactURL = u.String()
-	}
-
-	req, err := retryablehttp.NewRequest(http.MethodGet, artifactURL, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create a new request: %w", err)
-	}
-
-	resp, err := r.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to download artifact, error: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download artifact from %s, status: %s", artifactURL, resp.Status)
-	}
-
-	if _, err = untar.Untar(resp.Body, tmpDir); err != nil {
-		return fmt.Errorf("failed to untar artifact, error: %w", err)
-	}
-
-	return nil
 }
