@@ -89,7 +89,7 @@ Konfiguration is the Schema for the konfigurations API
 <tbody>
 <tr class="odd">
 <td><code>dependsOn</code><br />
-<em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/runtime/dependency#CrossNamespaceDependencyReference">[]github.com/fluxcd/pkg/runtime/dependency.CrossNamespaceDependencyReference</a></em></td>
+<em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/runtime/dependency#CrossNamespaceDependencyReference">[]FluxCD runtime/dependency.CrossNamespaceDependencyReference</a></em></td>
 <td><em>(Optional)</em>
 <p>DependsOn may contain a dependency.CrossNamespaceDependencyReference slice with references to Konfiguration resources that must be ready before this Konfiguration can be reconciled. NOTE: Not yet implemented.</p></td>
 </tr>
@@ -134,7 +134,7 @@ Konfiguration is the Schema for the konfigurations API
 </tr>
 <tr class="odd">
 <td><code>healthChecks</code><br />
-<em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#NamespacedObjectKindReference">[]github.com/fluxcd/pkg/apis/meta.NamespacedObjectKindReference</a></em></td>
+<em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#NamespacedObjectKindReference">[]FluxCD apis/meta.NamespacedObjectKindReference</a></em></td>
 <td><em>(Optional)</em>
 <p>A list of resources to be included in the health assessment. NOTE: Not yet implemented.</p></td>
 </tr>
@@ -199,7 +199,7 @@ KonfigurationSpec defines the desired state of Konfiguration
 <tbody>
 <tr class="odd">
 <td><code>dependsOn</code><br />
-<em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/runtime/dependency#CrossNamespaceDependencyReference">[]github.com/fluxcd/pkg/runtime/dependency.CrossNamespaceDependencyReference</a></em></td>
+<em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/runtime/dependency#CrossNamespaceDependencyReference">[]FluxCD runtime/dependency.CrossNamespaceDependencyReference</a></em></td>
 <td><em>(Optional)</em>
 <p>DependsOn may contain a dependency.CrossNamespaceDependencyReference slice with references to Konfiguration resources that must be ready before this Konfiguration can be reconciled. NOTE: Not yet implemented.</p></td>
 </tr>
@@ -244,7 +244,7 @@ KonfigurationSpec defines the desired state of Konfiguration
 </tr>
 <tr class="odd">
 <td><code>healthChecks</code><br />
-<em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#NamespacedObjectKindReference">[]github.com/fluxcd/pkg/apis/meta.NamespacedObjectKindReference</a></em></td>
+<em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#NamespacedObjectKindReference">[]FluxCD apis/meta.NamespacedObjectKindReference</a></em></td>
 <td><em>(Optional)</em>
 <p>A list of resources to be included in the health assessment. NOTE: Not yet implemented.</p></td>
 </tr>
@@ -420,4 +420,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `1cf196c`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `61ba481`.*

@@ -19,7 +19,8 @@
     ],
     "typeDisplayNamePrefixOverrides": {
         "k8s.io/api/": "Kubernetes ",
-        "k8s.io/apimachinery/pkg/apis/": "Kubernetes "
+        "k8s.io/apimachinery/pkg/apis/": "Kubernetes ",
+        "github.com/fluxcd/pkg/": "FluxCD "
     },
     "markdownDisabled": false
 }
