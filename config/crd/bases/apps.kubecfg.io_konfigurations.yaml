@@ -64,9 +64,9 @@ spec:
             description: KonfigurationSpec defines the desired state of Konfiguration
             properties:
               dependsOn:
-                description: 'DependsOn may contain a dependency.CrossNamespaceDependencyReference
+                description: DependsOn may contain a dependency.CrossNamespaceDependencyReference
                   slice with references to Konfiguration resources that must be ready
-                  before this Konfiguration can be reconciled. NOTE: Not yet implemented.'
+                  before this Konfiguration can be reconciled.
                 items:
                   description: CrossNamespaceDependencyReference holds the reference
                     to a dependency.

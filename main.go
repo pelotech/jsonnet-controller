@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -72,8 +73,9 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.IntVar(&reconcileOpts.HTTPRetryMax, "http-retry-max", 3, "Maximum number of times to retry fetching a source artifact")
-	flag.IntVar(&reconcileOpts.MaxConcurrentReconciles, "max-concurrent-reconciles", 1, "Number of reconcilations to allow to run at a time")
+	flag.IntVar(&reconcileOpts.HTTPRetryMax, "http-retry-max", 5, "Maximum number of times to retry fetching a source artifact")
+	flag.IntVar(&reconcileOpts.MaxConcurrentReconciles, "max-concurrent-reconciles", 3, "Number of reconcilations to allow to run at a time")
+	flag.DurationVar(&reconcileOpts.DependencyRequeueInterval, "dependency-requeue-interval", 30*time.Second, "The interval at which failing dependencies are reevaluated.")
 	flag.StringVar(&eventsAddr, "events-addr", "", "The address for an external events receiver.")
 	flag.BoolVar(&watchAllNamespaces, "watch-all-namespaces", true,
 		"Watch for Konfigurations in all namespaces, if set to false it will only watch the runtime namespace.")

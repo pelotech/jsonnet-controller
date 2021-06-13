@@ -30,7 +30,6 @@ type KonfigurationSpec struct {
 	// DependsOn may contain a dependency.CrossNamespaceDependencyReference slice
 	// with references to Konfiguration resources that must be ready before this
 	// Konfiguration can be reconciled.
-	// NOTE: Not yet implemented.
 	// +optional
 	DependsOn []dependency.CrossNamespaceDependencyReference `json:"dependsOn,omitempty"`
 

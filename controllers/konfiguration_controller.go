@@ -53,17 +53,19 @@ import (
 type KonfigurationReconciler struct {
 	client.Client
 	Scheme                *runtime.Scheme
-	httpClient            *retryablehttp.Client
 	EventRecorder         kuberecorder.EventRecorder
 	ExternalEventRecorder *events.Recorder
 	MetricsRecorder       *metrics.Recorder
 	StatusPoller          *polling.StatusPoller
+
+	httpClient                *retryablehttp.Client
+	dependencyRequeueDuration time.Duration
 }
 
 type ReconcilerOptions struct {
-	MaxConcurrentReconciles int
-	HTTPRetryMax            int
-	// DependencyRequeueInterval time.Duration
+	MaxConcurrentReconciles   int
+	HTTPRetryMax              int
+	DependencyRequeueInterval time.Duration
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -75,6 +77,7 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 	httpClient.RetryMax = opts.HTTPRetryMax
 	httpClient.Logger = nil
 	r.httpClient = httpClient
+	r.dependencyRequeueDuration = opts.DependencyRequeueInterval
 
 	// Index the Kustomizations by the GitRepository references they (may) point at.
 	if err := mgr.GetCache().IndexField(context.TODO(), &appsv1.Konfiguration{}, appsv1.GitRepositoryIndexKey,
@@ -171,6 +174,23 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}, nil
 	}
 	defer clean()
+
+	// Check if there are any dependencies and that they are all ready
+	if err := r.checkDependencies(ctx, konfig); err != nil {
+		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(
+			revision, meta.DependencyNotReadyReason, err.Error(),
+		)); statusErr != nil {
+			reqLogger.Error(err, "failed to update status for dependency not ready")
+		}
+		msg := fmt.Sprintf("Dependencies do not meet ready condition, retrying in %s", r.dependencyRequeueDuration.String())
+		reqLogger.Info(msg)
+		r.event(ctx, konfig, &EventData{
+			Revision: revision,
+			Severity: events.EventSeverityInfo,
+			Message:  msg,
+		})
+		return ctrl.Result{RequeueAfter: r.dependencyRequeueDuration}, nil
+	}
 
 	// Build the jsonnet and compute a checksum
 	manifests, checksum, err := r.build(ctx, konfig, path)
