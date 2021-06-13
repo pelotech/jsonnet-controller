@@ -4,8 +4,7 @@
     ],
     "hideTypePatterns": [
         "ParseError$",
-        "List$",
-        ".*?Status.*?"
+        "List$"
     ],
     "externalPackages": [
         {

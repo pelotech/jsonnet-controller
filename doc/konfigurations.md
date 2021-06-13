@@ -281,6 +281,56 @@ KonfigurationSpec defines the desired state of Konfiguration
 </tbody>
 </table>
 
+### KonfigurationStatus
+
+(*Appears on:*[Konfiguration](#Konfiguration))
+
+KonfigurationStatus defines the observed state of Konfiguration
+
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>observedGeneration</code><br />
+<em>int64</em></td>
+<td><em>(Optional)</em>
+<p>ObservedGeneration is the last reconciled generation.</p></td>
+</tr>
+<tr class="even">
+<td><code>conditions</code><br />
+<em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#condition-v1-meta">[]Kubernetes meta/v1.Condition</a></em></td>
+<td><em>(Optional)</em></td>
+</tr>
+<tr class="odd">
+<td><code>lastAppliedRevision</code><br />
+<em>string</em></td>
+<td><em>(Optional)</em>
+<p>The last successfully applied revision. The revision format for Git sources is /. For HTTP(S) paths it will just be the URL.</p></td>
+</tr>
+<tr class="even">
+<td><code>lastAttemptedRevision</code><br />
+<em>string</em></td>
+<td><em>(Optional)</em>
+<p>LastAttemptedRevision is the revision of the last reconciliation attempt. For HTTP(S) paths it will just be the URL.</p></td>
+</tr>
+<tr class="odd">
+<td><code>snapshot</code><br />
+<em><a href="#Snapshot">Snapshot</a></em></td>
+<td><em>(Optional)</em>
+<p>The last successfully applied revision metadata.</p></td>
+</tr>
+</tbody>
+</table>
+
 ### KubeConfig
 
 (*Appears
@@ -310,6 +360,9 @@ kubeconfig file.
 </table>
 
 ### Snapshot
+
+(*Appears
+on:*[KonfigurationStatus](#KonfigurationStatus))
 
 Snapshot holds the metadata of the Kubernetes objects generated for a
 source revision
@@ -371,6 +424,38 @@ Snapshot holds the metadata of namespaced Kubernetes objects
 </tbody>
 </table>
 
+### StatusMeta
+
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Revision</code><br />
+<em>string</em></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>Reason</code><br />
+<em>string</em></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>Message</code><br />
+<em>string</em></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+
 ### Variables
 
 (*Appears
@@ -420,4 +505,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `61ba481`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `7c8e61c`.*
