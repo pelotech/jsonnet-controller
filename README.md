@@ -179,3 +179,15 @@ See the example [GitRepository](config/samples/kubecfg-operator-git-repository.y
 ---
 
 There will be generated documentation later, but for now to see all Konfiguration options, view the [source code](api/v1/konfiguration_types.go) (specifically the `json` tags).
+
+---
+
+## TODO
+
+These are features and other tasks that need to be completed before an initial release will be ready.
+
+- [ ] Unit and E2E Tests
+- [ ] Generated Documentation
+- [ ] Metrics
+- [ ] Konfiguration Dependencies
+- [ ] HealthChecks
