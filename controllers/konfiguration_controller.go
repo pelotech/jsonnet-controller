@@ -316,6 +316,11 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *a
 
 		kubeconfig, err := r.getKubeConfig(ctx, konfig)
 		if err != nil {
+			r.event(ctx, konfig, &EventData{
+				Revision: konfig.Status.LastAppliedRevision,
+				Severity: events.EventSeverityError,
+				Message:  err.Error(),
+			})
 			// Status updates and logging happen in getKubeConfig
 			return ctrl.Result{
 				RequeueAfter: konfig.GetRetryInterval(),
