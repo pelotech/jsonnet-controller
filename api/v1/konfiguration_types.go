@@ -89,7 +89,7 @@ type KonfigurationSpec struct {
 	KubecfgArgs []string `json:"kubecfgArgs,omitempty"`
 
 	// Validate input against the server schema, defaults to true.
-	// NOTE: There isn't really a way to disable this yet.
+	// This will be updated to support different methods of validation.
 	// +kubebuilder:default:=true
 	// +optional
 	Validate bool `json:"validate,omitempty"`

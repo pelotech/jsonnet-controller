@@ -78,6 +78,14 @@ docker-build: test ## Build docker image with the manager.
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
+REFDOCS = "$(PWD)/bin/refdocs"
+$(REFDOCS):
+	cd hack && go build -o $(REFDOCS) .
+
+api-docs: $(REFDOCS)
+	go mod vendor
+	bash hack/update-api-docs.sh
+
 ##@ Deployment
 
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.

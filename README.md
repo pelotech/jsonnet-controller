@@ -10,6 +10,8 @@ with the existing functionality for absolute URLs.
 
 ## Quickstart
 
+API Documentation is available [here](doc/konfigurations.md#Konfiguration).
+
 ### Installing
 
 You can use either `kustomize` or `kubecfg` to install the controller and its CRDs.
@@ -178,16 +180,11 @@ See the example [GitRepository](config/samples/kubecfg-operator-git-repository.y
 
 ---
 
-There will be generated documentation later, but for now to see all Konfiguration options, view the [source code](api/v1/konfiguration_types.go) (specifically the `json` tags).
-
----
-
 ## TODO
 
 These are features and other tasks that need to be completed before an initial release will be ready.
 
 - [ ] Unit and E2E Tests
-- [ ] Generated Documentation
 - [ ] Metrics
 - [ ] Konfiguration Dependencies
 - [ ] HealthChecks

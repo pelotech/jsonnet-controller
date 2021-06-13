@@ -1,0 +1,25 @@
+{
+    "hideMemberFields": [
+        "TypeMeta"
+    ],
+    "hideTypePatterns": [
+        "ParseError$",
+        "List$",
+        ".*?Status.*?"
+    ],
+    "externalPackages": [
+        {
+            "typeMatchPrefix": "^k8s\\.io/(api|apimachinery/pkg/apis)/",
+            "docsURLTemplate": "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#{{lower .TypeIdentifier}}-{{arrIndex .PackageSegments -1}}-{{arrIndex .PackageSegments -2}}"
+        },
+        {
+            "typeMatchPrefix": "^github\\.com/fluxcd/pkg/",
+            "docsURLTemplate": "https://pkg.go.dev/github.com/fluxcd/pkg/{{arrIndex .PackageSegments -2}}/{{arrIndex .PackageSegments -1}}#{{.TypeIdentifier}}"
+        }
+    ],
+    "typeDisplayNamePrefixOverrides": {
+        "k8s.io/api/": "Kubernetes ",
+        "k8s.io/apimachinery/pkg/apis/": "Kubernetes "
+    },
+    "markdownDisabled": false
+}

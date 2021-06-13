@@ -197,8 +197,8 @@ spec:
                 type: string
               validate:
                 default: true
-                description: 'Validate input against the server schema, defaults to
-                  true. NOTE: There isn''t really a way to disable this yet.'
+                description: Validate input against the server schema, defaults to
+                  true. This will be updated to support different methods of validation.
                 type: boolean
               variables:
                 description: Variables to use when invoking kubecfg to render manifests.
