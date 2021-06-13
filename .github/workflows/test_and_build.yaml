@@ -19,6 +19,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - uses: actions/setup-go@v1
+      with:
+        go-version: '^1.16.5'
+
     # Determine tag we will use for images
     - name: Get image version
       shell: bash
