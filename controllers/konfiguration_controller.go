@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -30,6 +29,8 @@ import (
 	"github.com/fluxcd/pkg/runtime/predicates"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kuberecorder "k8s.io/client-go/tools/record"
 	"sigs.k8s.io/cli-utils/pkg/kstatus/polling"
@@ -233,7 +234,9 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Set the konfiguration as ready
 	msg := fmt.Sprintf("Applied revision: %s", revision)
-	if err := konfig.SetReady(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, meta.ReconciliationSucceededReason, msg)); err != nil {
+	if err := konfig.SetReady(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+		revision, meta.ReconciliationSucceededReason, msg),
+	); err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
 
@@ -251,64 +254,83 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}, nil
 }
 
-func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.Konfiguration, snapshot *appsv1.Snapshot, revision string, manifests []byte) error {
+func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.Konfiguration, snapshot *appsv1.Snapshot, revision string, manifest []byte) error {
 	reqLogger := log.FromContext(ctx)
 
-	kubeconfig, err := r.getKubeConfig(ctx, konfig)
+	dirPath, path, err := r.writeManifest(ctx, konfig, manifest)
 	if err != nil {
-		// Status updates and logging happen in getKubeConfig
-		return err
-	}
-	if kubeconfig != "" {
-		defer os.Remove(kubeconfig)
-	}
-
-	// Allocate a new temp directory for the generated manifests and/or kubeconfig
-	dir, err := ioutil.TempDir("", konfig.GetName())
-	if err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, sourcev1.StorageOperationFailedReason, err.Error())); statusErr != nil {
-			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-		}
-		reqLogger.Info("Could not allocate a temp directory for the generated manifest")
-		return err
-	}
-
-	// Write the manifest to the temp directory - kubecfg needs to know the file extension
-	// to know it's yaml at the moment.
-	path := filepath.Join(dir, "manifest.yaml")
-	if err := ioutil.WriteFile(path, manifests, 0600); err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, sourcev1.StorageOperationFailedReason, err.Error())); statusErr != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+			revision, sourcev1.StorageOperationFailedReason, err.Error()),
+		); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
 		reqLogger.Info("Could not write the generated manifest to disk")
 		return err
 	}
 
-	// Run a diff first to determine if any actions are necessary
-	updateRequired, err := runKubecfgDiff(ctx, konfig, path, kubeconfig)
+	// Create any necessary kube-clients for impersonation
+	impersonation := NewKonfigurationImpersonation(konfig, r.Client, r.StatusPoller, dirPath)
+	_, statusPoller, err := impersonation.GetClient(ctx)
 	if err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, appsv1.ValidationFailedReason, err.Error())); statusErr != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+			revision, meta.ReconciliationFailedReason, err.Error()),
+		); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
+		return fmt.Errorf("failed to build kube client: %w", err)
+	}
+
+	// Run a diff first to determine if any actions are necessary
+	updateRequired, err := runKubecfgDiff(ctx, konfig, impersonation, path)
+	if err != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+			revision, appsv1.ValidationFailedReason, err.Error()),
+		); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
 		return err
 	}
 
-	// If no update required, check on the next interval.
+	// If no update required and the last status update was marked ready, check on the next interval.
 	if !updateRequired {
+		// Check healthiness
+		if err := r.checkHealth(ctx, statusPoller, konfig, revision); err != nil {
+			if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+				revision, appsv1.HealthCheckFailedReason, err.Error()),
+			); statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+			}
+			return err
+		}
 		return nil
 	}
 
-	// Run a dry-run - is also validation to some extant but this should all be cleaned up
-	if err := runKubecfgUpdate(ctx, konfig, path, true, kubeconfig); err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, appsv1.ValidationFailedReason, err.Error())); statusErr != nil {
+	// Run a dry-run
+	// TODO: This should probably be skipped entirely when validation is disabled.
+	if err := runKubecfgUpdate(ctx, konfig, impersonation, path, true); err != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+			revision, appsv1.ValidationFailedReason, err.Error()),
+		); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
 		return err
 	}
 
 	// Run an update
-	if err := runKubecfgUpdate(ctx, konfig, path, false, kubeconfig); err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
+	if err := runKubecfgUpdate(ctx, konfig, impersonation, path, false); err != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+			revision, meta.ReconciliationFailedReason, err.Error()),
+		); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
+		return err
+	}
+
+	// Check healthiness
+	if err := r.checkHealth(ctx, statusPoller, konfig, revision); err != nil {
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+			revision, appsv1.HealthCheckFailedReason, err.Error()),
+		); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
 		return err
@@ -318,6 +340,8 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.
 }
 
 func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *appsv1.Konfiguration) (ctrl.Result, error) {
+	reqLogger := log.FromContext(ctx)
+
 	// If the konfig had prunening enabled and wasn't suspended for deletion
 	// Run a kubecfg delete.
 	if konfig.GCEnabled() && !konfig.IsSuspended() {
@@ -328,46 +352,101 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *a
 				Severity: events.EventSeverityError,
 				Message:  err.Error(),
 			})
-			return ctrl.Result{
-				RequeueAfter: konfig.GetRetryInterval(),
-			}, nil
+			return ctrl.Result{Requeue: true}, err
 		}
 		defer clean()
 
-		kubeconfig, err := r.getKubeConfig(ctx, konfig)
+		// Build the jsonnet - this is a hacky solution for not doing GC like kustomize-controller
+		// does for now
+		manifest, _, err := r.build(ctx, konfig, path)
 		if err != nil {
 			r.event(ctx, konfig, &EventData{
 				Revision: konfig.Status.LastAppliedRevision,
 				Severity: events.EventSeverityError,
 				Message:  err.Error(),
 			})
-			// Status updates and logging happen in getKubeConfig
-			return ctrl.Result{
-				RequeueAfter: konfig.GetRetryInterval(),
-			}, err
-		}
-		if kubeconfig != "" {
-			defer os.Remove(kubeconfig)
+			reqLogger.Error(err, "Error building the jsonnet")
+			return ctrl.Result{Requeue: true}, err
 		}
 
-		if err := runKubecfgDelete(ctx, konfig, path, kubeconfig); err != nil {
+		dirPath, path, err := r.writeManifest(ctx, konfig, manifest)
+		if err != nil {
 			r.event(ctx, konfig, &EventData{
 				Revision: konfig.Status.LastAppliedRevision,
 				Severity: events.EventSeverityError,
 				Message:  err.Error(),
 			})
-			return ctrl.Result{
-				RequeueAfter: konfig.GetRetryInterval(),
-			}, nil
+			reqLogger.Info("Could not write the generated manifest to disk")
+			return ctrl.Result{Requeue: true}, err
+		}
+
+		impersonation := NewKonfigurationImpersonation(konfig, r.Client, r.StatusPoller, dirPath)
+
+		if err := runKubecfgDelete(ctx, konfig, impersonation, path); err != nil {
+			r.event(ctx, konfig, &EventData{
+				Revision: konfig.Status.LastAppliedRevision,
+				Severity: events.EventSeverityError,
+				Message:  err.Error(),
+			})
+			return ctrl.Result{Requeue: true}, err
 		}
 	}
 
 	// Remove our finalizer from the list and update it
 	controllerutil.RemoveFinalizer(konfig, appsv1.KonfigurationFinalizer)
 	if err := r.Update(ctx, konfig); err != nil {
-		return ctrl.Result{}, err
+		r.event(ctx, konfig, &EventData{
+			Revision: konfig.Status.LastAppliedRevision,
+			Severity: events.EventSeverityError,
+			Message:  err.Error(),
+		})
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Stop reconciliation as the object is being deleted
 	return ctrl.Result{}, nil
+}
+
+// writeManifest prepares a temporary directory and writes the built manifest to disks
+func (r *KonfigurationReconciler) writeManifest(ctx context.Context, konfig *appsv1.Konfiguration, manifest []byte) (dirPath, manifestPath string, err error) {
+	// Allocate a new temp directory for the generated manifests and/or kubeconfig
+	dirPath, err = ioutil.TempDir("", konfig.GetName())
+	if err != nil {
+		return
+	}
+
+	// Write the manifest to the temp directory - kubecfg needs to know the file extension
+	// to know it's yaml at the moment.
+	manifestPath = filepath.Join(dirPath, "manifest.yaml")
+	if err = ioutil.WriteFile(manifestPath, manifest, 0600); err != nil {
+		return
+	}
+
+	return
+}
+
+// checkHealth checks the healthiness of the konfiguration after an apply
+func (r *KonfigurationReconciler) checkHealth(ctx context.Context, statusPoller *polling.StatusPoller, konfig *appsv1.Konfiguration, revision string) error {
+	if len(konfig.GetHealthChecks()) == 0 {
+		return nil
+	}
+
+	hc := NewHealthCheck(konfig, statusPoller)
+
+	if err := hc.Assess(1 * time.Second); err != nil {
+		return err
+	}
+
+	healthiness := apimeta.FindStatusCondition(konfig.Status.Conditions, appsv1.HealthyCondition)
+	healthy := healthiness != nil && healthiness.Status == metav1.ConditionTrue
+
+	if !healthy || (konfig.Status.LastAppliedRevision != revision) {
+		r.event(ctx, konfig, &EventData{
+			Revision: revision,
+			Severity: events.EventSeverityInfo,
+			Message:  "Health check passed",
+		})
+	}
+
+	return nil
 }

@@ -91,7 +91,7 @@ Konfiguration is the Schema for the konfigurations API
 <td><code>dependsOn</code><br />
 <em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/runtime/dependency#CrossNamespaceDependencyReference">[]FluxCD runtime/dependency.CrossNamespaceDependencyReference</a></em></td>
 <td><em>(Optional)</em>
-<p>DependsOn may contain a dependency.CrossNamespaceDependencyReference slice with references to Konfiguration resources that must be ready before this Konfiguration can be reconciled. NOTE: Not yet implemented.</p></td>
+<p>DependsOn may contain a dependency.CrossNamespaceDependencyReference slice with references to Konfiguration resources that must be ready before this Konfiguration can be reconciled.</p></td>
 </tr>
 <tr class="even">
 <td><code>interval</code><br />
@@ -122,47 +122,53 @@ Konfiguration is the Schema for the konfigurations API
 <p>Variables to use when invoking kubecfg to render manifests.</p></td>
 </tr>
 <tr class="odd">
+<td><code>serviceAccountName</code><br />
+<em>string</em></td>
+<td><em>(Optional)</em>
+<p>The name of the Kubernetes service account to impersonate when reconciling this Konfiguration.</p></td>
+</tr>
+<tr class="even">
 <td><code>sourceRef</code><br />
 <em><a href="#CrossNamespaceSourceReference">CrossNamespaceSourceReference</a></em></td>
 <td><em>(Optional)</em>
 <p>Reference of the source where the jsonnet, json, or yaml file(s) are.</p></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>prune</code><br />
 <em>bool</em></td>
 <td><p>Prune enables garbage collection. Note that this makes commands take considerably longer, so you may want to adjust your timeouts accordingly.</p></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>healthChecks</code><br />
 <em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#NamespacedObjectKindReference">[]FluxCD apis/meta.NamespacedObjectKindReference</a></em></td>
 <td><em>(Optional)</em>
-<p>A list of resources to be included in the health assessment. NOTE: Not yet implemented.</p></td>
+<p>A list of resources to be included in the health assessment.</p></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>suspend</code><br />
 <em>bool</em></td>
 <td><em>(Optional)</em>
 <p>This flag tells the controller to suspend subsequent kubecfg executions, it does not apply to already started executions. Defaults to false.</p></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>timeout</code><br />
 <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#duration-v1-meta">Kubernetes meta/v1.Duration</a></em></td>
 <td><em>(Optional)</em>
 <p>Timeout for diff, validation, apply, and (soon) health checking operations. Defaults to ‘Interval’ duration.</p></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>kubecfgArgs</code><br />
 <em>[]string</em></td>
 <td><em>(Optional)</em>
 <p>Additional global arguments to pass to kubecfg invocations.</p></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>validate</code><br />
 <em>bool</em></td>
 <td><em>(Optional)</em>
 <p>Validate input against the server schema, defaults to true. This will be updated to support different methods of validation.</p></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diffStrategy</code><br />
 <em>string</em></td>
 <td><em>(Optional)</em>
@@ -183,7 +189,7 @@ Konfiguration is the Schema for the konfigurations API
 
 (*Appears on:*[Konfiguration](#Konfiguration))
 
-KonfigurationSpec defines the desired state of Konfiguration
+KonfigurationSpec defines the desired state of a Konfiguration
 
 <table>
 <colgroup>
@@ -201,7 +207,7 @@ KonfigurationSpec defines the desired state of Konfiguration
 <td><code>dependsOn</code><br />
 <em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/runtime/dependency#CrossNamespaceDependencyReference">[]FluxCD runtime/dependency.CrossNamespaceDependencyReference</a></em></td>
 <td><em>(Optional)</em>
-<p>DependsOn may contain a dependency.CrossNamespaceDependencyReference slice with references to Konfiguration resources that must be ready before this Konfiguration can be reconciled. NOTE: Not yet implemented.</p></td>
+<p>DependsOn may contain a dependency.CrossNamespaceDependencyReference slice with references to Konfiguration resources that must be ready before this Konfiguration can be reconciled.</p></td>
 </tr>
 <tr class="even">
 <td><code>interval</code><br />
@@ -232,47 +238,53 @@ KonfigurationSpec defines the desired state of Konfiguration
 <p>Variables to use when invoking kubecfg to render manifests.</p></td>
 </tr>
 <tr class="odd">
+<td><code>serviceAccountName</code><br />
+<em>string</em></td>
+<td><em>(Optional)</em>
+<p>The name of the Kubernetes service account to impersonate when reconciling this Konfiguration.</p></td>
+</tr>
+<tr class="even">
 <td><code>sourceRef</code><br />
 <em><a href="#CrossNamespaceSourceReference">CrossNamespaceSourceReference</a></em></td>
 <td><em>(Optional)</em>
 <p>Reference of the source where the jsonnet, json, or yaml file(s) are.</p></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>prune</code><br />
 <em>bool</em></td>
 <td><p>Prune enables garbage collection. Note that this makes commands take considerably longer, so you may want to adjust your timeouts accordingly.</p></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>healthChecks</code><br />
 <em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#NamespacedObjectKindReference">[]FluxCD apis/meta.NamespacedObjectKindReference</a></em></td>
 <td><em>(Optional)</em>
-<p>A list of resources to be included in the health assessment. NOTE: Not yet implemented.</p></td>
+<p>A list of resources to be included in the health assessment.</p></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>suspend</code><br />
 <em>bool</em></td>
 <td><em>(Optional)</em>
 <p>This flag tells the controller to suspend subsequent kubecfg executions, it does not apply to already started executions. Defaults to false.</p></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>timeout</code><br />
 <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#duration-v1-meta">Kubernetes meta/v1.Duration</a></em></td>
 <td><em>(Optional)</em>
 <p>Timeout for diff, validation, apply, and (soon) health checking operations. Defaults to ‘Interval’ duration.</p></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>kubecfgArgs</code><br />
 <em>[]string</em></td>
 <td><em>(Optional)</em>
 <p>Additional global arguments to pass to kubecfg invocations.</p></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>validate</code><br />
 <em>bool</em></td>
 <td><em>(Optional)</em>
 <p>Validate input against the server schema, defaults to true. This will be updated to support different methods of validation.</p></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>diffStrategy</code><br />
 <em>string</em></td>
 <td><em>(Optional)</em>
@@ -505,4 +517,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `9ddf8dc`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `eba295e`.*

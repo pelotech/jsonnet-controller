@@ -61,7 +61,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: KonfigurationSpec defines the desired state of Konfiguration
+            description: KonfigurationSpec defines the desired state of a Konfiguration
             properties:
               dependsOn:
                 description: DependsOn may contain a dependency.CrossNamespaceDependencyReference
@@ -92,8 +92,7 @@ spec:
                 - last-applied
                 type: string
               healthChecks:
-                description: 'A list of resources to be included in the health assessment.
-                  NOTE: Not yet implemented.'
+                description: A list of resources to be included in the health assessment.
                 items:
                   description: NamespacedObjectKindReference contains enough information
                     to let you locate the typed referenced object in any namespace
@@ -161,6 +160,10 @@ spec:
                 description: The interval at which to retry a previously failed reconciliation.
                   When not specified, the controller uses the KonfigurationSpec.Interval
                   value to retry failures.
+                type: string
+              serviceAccountName:
+                description: The name of the Kubernetes service account to impersonate
+                  when reconciling this Konfiguration.
                 type: string
               sourceRef:
                 description: Reference of the source where the jsonnet, json, or yaml

@@ -20,6 +20,6 @@ require (
 	k8s.io/client-go v0.21.1
 	k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027
 	k8s.io/klog v1.0.0
-	sigs.k8s.io/cli-utils v0.25.0
+	sigs.k8s.io/cli-utils v0.25.1-0.20210608181808-f3974341173a
 	sigs.k8s.io/controller-runtime v0.9.0
 )

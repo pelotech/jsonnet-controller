@@ -187,6 +187,5 @@ These are features and other tasks that need to be completed before an initial r
 
 - [ ] Unit and E2E Tests
 - [ ] Metrics
-- [ ] HealthChecks
 - [ ] Validation Options
 - [ ] Better error messages for status/events

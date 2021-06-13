@@ -21,7 +21,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/dependency"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -86,9 +88,7 @@ func (k *KubeConfig) Fetch(ctx context.Context, c client.Client, namespace strin
 func (k *Konfiguration) GetPath() string { return k.Spec.Path }
 
 // GetVariables returns the external and top level arguments to pass to kubecfg.
-func (k *Konfiguration) GetVariables() *Variables {
-	return k.Spec.Variables
-}
+func (k *Konfiguration) GetVariables() *Variables { return k.Spec.Variables }
 
 // AppendToArgs formats the configured variables to kubecfg command line arguments.
 func (v *Variables) AppendToArgs(args []string) []string {
@@ -128,13 +128,17 @@ func (k *Konfiguration) GetDiffStrategy() string { return k.Spec.DiffStrategy }
 // when patching fails due to an immutable field change.
 // func (k *Konfiguration) ForceCreate() bool { return k.Spec.Force }
 
+// GetDependsOn returns the konfigurations this one depends on.
 func (k Konfiguration) GetDependsOn() (types.NamespacedName, []dependency.CrossNamespaceDependencyReference) {
-	return types.NamespacedName{
-		Namespace: k.Namespace,
-		Name:      k.Name,
-	}, k.Spec.DependsOn
+	return k.GetNamespacedName(), k.Spec.DependsOn
 }
 
+// GetHealthChecks returns the health checks for this Konfiguration.
+func (k *Konfiguration) GetHealthChecks() []meta.NamespacedObjectKindReference {
+	return k.Spec.HealthChecks
+}
+
+// GetSourceRef returns the source ref for this konfiguration.
 func (k *Konfiguration) GetSourceRef() *CrossNamespaceSourceReference {
 	if k.Spec.SourceRef != nil {
 		if k.Spec.SourceRef.Namespace == "" {

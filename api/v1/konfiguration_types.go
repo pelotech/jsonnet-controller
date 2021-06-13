@@ -19,13 +19,14 @@ package v1
 import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/dependency"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// KonfigurationSpec defines the desired state of Konfiguration
+// KonfigurationSpec defines the desired state of a Konfiguration
 type KonfigurationSpec struct {
 	// DependsOn may contain a dependency.CrossNamespaceDependencyReference slice
 	// with references to Konfiguration resources that must be ready before this
@@ -59,6 +60,11 @@ type KonfigurationSpec struct {
 	// +optional
 	Variables *Variables `json:"variables,omitempty"`
 
+	// The name of the Kubernetes service account to impersonate
+	// when reconciling this Konfiguration.
+	// +optional
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+
 	// Reference of the source where the jsonnet, json, or yaml file(s) are.
 	// +optional
 	SourceRef *CrossNamespaceSourceReference `json:"sourceRef"`
@@ -69,7 +75,6 @@ type KonfigurationSpec struct {
 	Prune bool `json:"prune"`
 
 	// A list of resources to be included in the health assessment.
-	// NOTE: Not yet implemented.
 	// +optional
 	HealthChecks []meta.NamespacedObjectKindReference `json:"healthChecks,omitempty"`
 
