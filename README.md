@@ -158,12 +158,12 @@ kubecfg update config/jsonnet/kubecfg-operator.jsonnet
 There are also `Makefile` helpers to do the equivalent of all of the above:
 
 ```bash
-make cluster flux-full-install docker-load deploy
-#       |              |            |          |
-#   Create Cluster     |            |          |
-#                  Install Flux     |          |
-#                                Load Image    |
-#                                            Deploy Controller and CRDs
+make cluster flux-install docker-load deploy
+#       |           |          |         |
+#   Create Cluster  |          |         |
+#              Install Flux    |         |
+#                          Load Image    |
+#                                 Deploy Controller and CRDs
 ```
 
 There is a very-simple example of a `Konfiguration` manifest [here](config/samples/whoami-konfiguration.yaml).

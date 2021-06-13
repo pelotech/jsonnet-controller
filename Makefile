@@ -158,7 +158,7 @@ flux-crds: ## Install the flux source-controller CRDs to the k3d cluster.
 		-f https://raw.githubusercontent.com/fluxcd/source-controller/$(SOURCE_VER)/config/crd/bases/source.toolkit.fluxcd.io_gitrepositories.yaml \
 	 	-f https://raw.githubusercontent.com/fluxcd/source-controller/$(SOURCE_VER)/config/crd/bases/source.toolkit.fluxcd.io_buckets.yaml
 
-flux-full-install: ## Install flux and all its components to the k3d cluster.
+flux-install: ## Install flux and all its components to the k3d cluster.
 	$(FLUX) --context=$(CONTEXT) check --pre
 	$(FLUX) --context=$(CONTEXT) install 
 
@@ -173,7 +173,7 @@ samples: ## Deploy the sample source-controller manifests into the cluster.
 		-f config/samples/kubecfg-operator-git-repository.yaml \
 		-f config/samples/whoami-source-controller-konfiguration.yaml
 
-full-local-env: cluster flux-full-install docker-load deploy samples ## Creates a full local environment (cluster, flux-full-install, docker-load, deploy, samples).
+full-local-env: cluster flux-install docker-load deploy samples ## Creates a full local environment (cluster, flux-full-install, docker-load, deploy, samples).
 
 delete-cluster: ## Delete the k3d cluster.
 	$(K3D) cluster delete $(CLUSTER_NAME)
