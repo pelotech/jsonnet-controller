@@ -1,5 +1,6 @@
 # kubecfg-operator
-An operator for managing remote manifests via kubecfg
+
+A fluxcd controller for managing remote manifests with kubecfg
 
 ---
 
