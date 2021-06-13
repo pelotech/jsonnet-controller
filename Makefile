@@ -62,7 +62,7 @@ $(GOLANGCI_LINT):
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(PWD)/bin" $(GOLANGCI_VERSION)
 
 lint: $(GOLANGCI_LINT) ## Run linting.
-	"$(GOLANGCI_LINT)" run -v --timeout 600s
+	"$(GOLANGCI_LINT)" run -v
 
 ##@ Build
 
