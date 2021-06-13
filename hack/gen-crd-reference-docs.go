@@ -284,10 +284,10 @@ func combineAPIPackages(pkgs []*types.Package) ([]*apiPackage, error) {
 			return nil, errors.Wrapf(err, "could not get apiVersion for package %s", pkg.Path)
 		}
 
-		typeList := make([]*types.Type, 0, len(pkg.Types))
-		for _, t := range pkg.Types {
-			typeList = append(typeList, t)
-		}
+		// typeList := make([]*types.Type, 0, len(pkg.Types))
+		// for _, t := range pkg.Types {
+		// 	typeList = append(typeList, t)
+		// }
 
 		id := fmt.Sprintf("%s/%s", apiGroup, apiVersion)
 		v, ok := pkgMap[id]
@@ -307,7 +307,7 @@ func combineAPIPackages(pkgs []*types.Package) ([]*apiPackage, error) {
 		}
 	}
 
-	sort.Sort(sort.StringSlice(pkgIds))
+	sort.Strings(pkgIds)
 
 	out := make([]*apiPackage, 0, len(pkgMap))
 	for _, id := range pkgIds {
@@ -587,14 +587,6 @@ func visibleTypes(in []*types.Type, c generatorConfig) []*types.Type {
 	return out
 }
 
-func packageDisplayName(pkg *types.Package, apiVersions map[string]string) string {
-	apiGroupVersion, ok := apiVersions[pkg.Path]
-	if ok {
-		return apiGroupVersion
-	}
-	return pkg.Path // go import path
-}
-
 func filterCommentTags(comments []string) []string {
 	var out []string
 	for _, v := range comments {
@@ -631,17 +623,6 @@ func extractTypeToPackageMap(pkgs []*apiPackage) map[*types.Type]*apiPackage {
 		for _, t := range ap.Constants {
 			out[t] = ap
 		}
-	}
-	return out
-}
-
-// packageMapToList flattens the map.
-func packageMapToList(pkgs map[string]*apiPackage) []*apiPackage {
-	// TODO(ahmetb): we should probably not deal with maps, this type can be
-	// a list everywhere.
-	out := make([]*apiPackage, 0, len(pkgs))
-	for _, v := range pkgs {
-		out = append(out, v)
 	}
 	return out
 }
