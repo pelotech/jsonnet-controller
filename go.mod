@@ -10,7 +10,6 @@ require (
 	github.com/fluxcd/source-controller/api v0.14.0
 	github.com/go-logr/logr v0.4.0
 	github.com/hashicorp/go-retryablehttp v0.7.0
-	github.com/imdario/mergo v0.3.12
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/pkg/errors v0.9.1

@@ -247,9 +247,9 @@ func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, ob
 	nn := client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	id := fmt.Sprintf("%s/%s", obj.GetKind(), nn.String())
 
-	// Set the garbage collection labels on the object
-	// This needs to happen before computing the checksum for the object as they will
-	// update labels to make sure an object is not pruned.
+	// Set the garbage collection labels on the object.
+	// This needs to happen before computing the checksum for the object as it will ensure
+	// labels are updated and the object is not pruned later.
 	labels := obj.GetLabels()
 	if labels == nil {
 		labels = make(map[string]string)
@@ -280,7 +280,6 @@ func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, ob
 	if err != nil {
 		if client.IgnoreNotFound(err) == nil {
 			// The object doesn't exist, create it
-			// TODO: Support dry-run
 			log.Info(fmt.Sprintf("Creating %s '%s'", obj.GetKind(), nn.String()))
 			if m.parent.ShouldValidate() {
 				if err := m.Create(ctx, obj, client.DryRunAll); err != nil {
