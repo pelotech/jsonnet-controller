@@ -14,7 +14,7 @@ API Documentation is available [here](doc/konfigurations.md#Konfiguration).
 
 ### Installing
 
-You can use either `kustomize` or `kubecfg` to install the controller and its CRDs.
+You can use either [`kustomize`](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/) or [`kubecfg`](https://github.com/bitnami/kubecfg/releases) to install the controller and its CRDs.
 
 ```bash
 # Using kubecfg - import and extend this file for modifications
@@ -30,6 +30,9 @@ kustomize edit set image controller=ghcr.io/pelotech/jsonnet-controller:latest
 ## Deploy
 kustomize build . | kubectl apply -f -
 ```
+
+Using `kustomize` you will want to tie any additional cluster permissions necessary to the created manager role.
+The jsonnet by default makes the manager a cluster-admin.
 
 ### Examples
 
