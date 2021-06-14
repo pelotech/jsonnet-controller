@@ -57,9 +57,10 @@ function(
     ingress: if expose then kube._Object('networking.k8s.io/v1', 'Ingress', name + '-ingress') {
         metadata+: { 
             labels: this.labels,
-            annotations: { 'kubernetes.io/​ingress.class': ingressClass },
+            annotations: { 'kubernetes.io/ingress.class': ingressClass },
         },
         spec: {
+            ingressClassName: ingressClass,
             rules: [
                 {
                     host: hostname,
