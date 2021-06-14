@@ -120,6 +120,16 @@ func (in *KonfigurationSpec) DeepCopyInto(out *KonfigurationSpec) {
 		*out = new(KubeConfig)
 		**out = **in
 	}
+	if in.JsonnetPaths != nil {
+		in, out := &in.JsonnetPaths, &out.JsonnetPaths
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.JsonnetURLs != nil {
+		in, out := &in.JsonnetURLs, &out.JsonnetURLs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Variables != nil {
 		in, out := &in.Variables, &out.Variables
 		*out = new(Variables)
@@ -139,11 +149,6 @@ func (in *KonfigurationSpec) DeepCopyInto(out *KonfigurationSpec) {
 		in, out := &in.Timeout, &out.Timeout
 		*out = new(metav1.Duration)
 		**out = **in
-	}
-	if in.KubecfgArgs != nil {
-		in, out := &in.KubecfgArgs, &out.KubecfgArgs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
 	}
 }
 

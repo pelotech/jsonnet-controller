@@ -32,7 +32,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
 
     crds: if this.install_crds then [
         kubecfg.parseYaml(importstr '../crd/bases/kubecfg.io_konfigurations.yaml'),
-    ],
+    ] else null,
 
     control_namespace: if this.create_namespace then kube.Namespace(this.namespace) {
         metadata+: {

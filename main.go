@@ -79,6 +79,7 @@ func main() {
 	flag.StringVar(&eventsAddr, "events-addr", "", "The address for an external events receiver.")
 	flag.BoolVar(&watchAllNamespaces, "watch-all-namespaces", true,
 		"Watch for Konfigurations in all namespaces, if set to false it will only watch the runtime namespace.")
+	flag.StringVar(&reconcileOpts.JsonnetCacheDirectory, "jsonnet-cache", "/cache", "The directory to cache jsonnet assets")
 	opts := zap.Options{
 		Development: true,
 	}

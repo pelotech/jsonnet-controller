@@ -119,6 +119,17 @@ spec:
               interval:
                 description: The interval at which to reconcile the Konfiguration.
                 type: string
+              jsonnerPaths:
+                description: Additional search paths to add to the jsonnet importer.
+                  These are relative to the root of the sourceRef.
+                items:
+                  type: string
+                type: array
+              jsonnetURLs:
+                description: Additional HTTP(S) URLs to add to the jsonnet importer.
+                items:
+                  type: string
+                type: array
               kubeConfig:
                 description: The KubeConfig for reconciling the Konfiguration on a
                   remote cluster. Defaults to the in-cluster configuration.
@@ -139,11 +150,6 @@ spec:
                         type: string
                     type: object
                 type: object
-              kubecfgArgs:
-                description: Additional global arguments to pass to kubecfg invocations.
-                items:
-                  type: string
-                type: array
               path:
                 description: Path to the jsonnet, json, or yaml that should be applied
                   to the cluster. Defaults to 'None', which translates to the root
@@ -195,8 +201,8 @@ spec:
                   Defaults to false.
                 type: boolean
               timeout:
-                description: Timeout for diff, validation, apply, and (soon) health
-                  checking operations. Defaults to 'Interval' duration.
+                description: Timeout for diff, validation, apply, and health checking
+                  operations. Defaults to 'Interval' duration.
                 type: string
               validate:
                 default: true

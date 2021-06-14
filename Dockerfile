@@ -1,23 +1,6 @@
-FROM golang:1.16 as base-builder
+FROM golang:1.16 as builder
 
 RUN apt-get update && apt-get install -y upx
-
-FROM base-builder as kubecfg-builder
-
-WORKDIR /workspace
-
-# Set the architecture
-ARG ARCH=amd64
-ENV ARCH=${ARCH}
-
-RUN git clone https://github.com/tinyzimmer/kubecfg && \
-        cd kubecfg && git checkout operator-poc
-
-RUN cd kubecfg \
-    && GOOS=linux GOARCH=${ARCH} GO_LDFLAGS="-s -w" make
-
-# Build the manager binary
-FROM base-builder as builder
 
 WORKDIR /workspace
 
@@ -47,7 +30,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="-s -w" -a -o mana
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/manager .
-COPY --from=kubecfg-builder /workspace/kubecfg/kubecfg .
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]

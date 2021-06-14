@@ -56,6 +56,15 @@ type KonfigurationSpec struct {
 	// +required
 	Path string `json:"path"`
 
+	// Additional search paths to add to the jsonnet importer. These are relative to
+	// the root of the sourceRef.
+	// +optional
+	JsonnetPaths []string `json:"jsonnerPaths,omitempty"`
+
+	// Additional HTTP(S) URLs to add to the jsonnet importer.
+	// +optional
+	JsonnetURLs []string `json:"jsonnetURLs,omitempty"`
+
 	// Variables to use when invoking kubecfg to render manifests.
 	// +optional
 	Variables *Variables `json:"variables,omitempty"`
@@ -83,14 +92,10 @@ type KonfigurationSpec struct {
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
 
-	// Timeout for diff, validation, apply, and (soon) health checking operations.
+	// Timeout for diff, validation, apply, and health checking operations.
 	// Defaults to 'Interval' duration.
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
-
-	// Additional global arguments to pass to kubecfg invocations.
-	// +optional
-	KubecfgArgs []string `json:"kubecfgArgs,omitempty"`
 
 	// Validate input against the server schema, defaults to true.
 	// This will be updated to support different methods of validation.

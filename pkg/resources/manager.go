@@ -47,8 +47,7 @@ type ReconcileeWithTimeout interface {
 	ShouldValidate() bool
 }
 
-// Manager is the main interface for reconciling resources from built
-// manifests.
+// Manager is the main interface for reconciling resources from built manifests.
 type Manager interface {
 	// Reconcile will reconcile the provided manifest of one or more objects with
 	// the API server. The snapshot provided must match the manifest.

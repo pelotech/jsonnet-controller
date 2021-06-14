@@ -20,9 +20,10 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
+	"strings"
 	"time"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/fluxcd/pkg/runtime/metrics"
@@ -48,6 +49,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 
 	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	"github.com/pelotech/kubecfg-operator/pkg/jsonnet"
 	"github.com/pelotech/kubecfg-operator/pkg/resources"
 )
 
@@ -62,12 +64,14 @@ type KonfigurationReconciler struct {
 
 	httpClient                *retryablehttp.Client
 	dependencyRequeueDuration time.Duration
+	jsonnetCache              string
 }
 
 type ReconcilerOptions struct {
 	MaxConcurrentReconciles   int
 	HTTPRetryMax              int
 	DependencyRequeueInterval time.Duration
+	JsonnetCacheDirectory     string
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -80,6 +84,7 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 	httpClient.Logger = nil
 	r.httpClient = httpClient
 	r.dependencyRequeueDuration = opts.DependencyRequeueInterval
+	r.jsonnetCache = opts.JsonnetCacheDirectory
 
 	// Index the Kustomizations by the GitRepository references they (may) point at.
 	if err := mgr.GetCache().IndexField(context.TODO(), &konfigurationv1.Konfiguration{}, konfigurationv1.GitRepositoryIndexKey,
@@ -194,33 +199,20 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{RequeueAfter: r.dependencyRequeueDuration}, nil
 	}
 
-	// Build the jsonnet and compute a checksum
-	manifests, checksum, err := r.build(ctx, konfig, path)
-	if err != nil {
-		meta := konfigurationv1.NewStatusMeta(revision, konfigurationv1.BuildFailedReason, err.Error())
-		if statusErr := konfig.SetNotReady(ctx, r.Client, meta); statusErr != nil {
-			reqLogger.Error(statusErr, "unable to update status after build error")
-		}
-		reqLogger.Error(err, "Error building the jsonnet")
-		return ctrl.Result{
-			RequeueAfter: konfig.GetRetryInterval(),
-		}, nil
-	}
-
-	// Create a snapshot from the build output
-	snapshot, err := konfigurationv1.NewSnapshot(manifests, checksum)
-	if err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
-			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-		}
-		reqLogger.Error(err, "Error creating snapshot of manifests")
-		return ctrl.Result{
-			RequeueAfter: konfig.GetRetryInterval(),
-		}, nil
-	}
+	// manifests, checksum, err := r.build(ctx, konfig, path)
+	// if err != nil {
+	// 	meta := konfigurationv1.NewStatusMeta(revision, konfigurationv1.BuildFailedReason, err.Error())
+	// 	if statusErr := konfig.SetNotReady(ctx, r.Client, meta); statusErr != nil {
+	// 		reqLogger.Error(statusErr, "unable to update status after build error")
+	// 	}
+	// 	reqLogger.Error(err, "Error building the jsonnet")
+	// 	return ctrl.Result{
+	// 		RequeueAfter: konfig.GetRetryInterval(),
+	// 	}, nil
+	// }
 
 	// Do reconciliation
-	err = r.reconcile(ctx, konfig, snapshot, revision, manifests)
+	snapshot, err := r.reconcile(ctx, konfig, revision, path)
 	if err != nil {
 		reqLogger.Error(err, "Error during reconciliation")
 		r.event(ctx, konfig, &EventData{
@@ -255,18 +247,13 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}, nil
 }
 
-func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigurationv1.Konfiguration, snapshot *konfigurationv1.Snapshot, revision string, manifest []byte) error {
+func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigurationv1.Konfiguration, revision, path string) (*konfigurationv1.Snapshot, error) {
 	reqLogger := log.FromContext(ctx)
 
-	dirPath, _, err := r.writeManifest(ctx, konfig, manifest)
+	// Allocate a new temp directory for the current reconcile's workspace
+	dirPath, err := ioutil.TempDir("", konfig.GetName())
 	if err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
-			revision, sourcev1.StorageOperationFailedReason, err.Error()),
-		); statusErr != nil {
-			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-		}
-		reqLogger.Info("Could not write the generated manifest to disk")
-		return err
+		return nil, err
 	}
 
 	// Create any necessary kube-clients for impersonation
@@ -278,14 +265,78 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 		); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
-		return fmt.Errorf("failed to build kube client: %w", err)
+		return nil, fmt.Errorf("failed to build kube client: %w", err)
+	}
+
+	// Create a builder to evaluate the jsonnet
+	builder, err := jsonnet.NewBuilder(konfig, dirPath, r.jsonnetCache)
+	if err != nil {
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
+			revision, meta.ReconciliationFailedReason, err.Error()),
+		); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
+		return nil, fmt.Errorf("failed to initialize jsonnet builder: %w", err)
+	}
+
+	// Check is path is a directory. If so, assume a 'main.jsonnet' file.
+	if strings.HasSuffix(path, "/") {
+		path, err = securejoin.SecureJoin(path, "main.jsonnet")
+		if err != nil {
+			if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
+				revision, meta.ReconciliationFailedReason, err.Error()),
+			); statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+			}
+			return nil, fmt.Errorf("failed to determine jsonnet path: %w", err)
+		}
+	}
+
+	// Build the jsonnet
+	buildOutput, err := builder.Build(ctx, kubeClient.RESTMapper(), path)
+	if err != nil {
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
+			revision, meta.ReconciliationFailedReason, err.Error()),
+		); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
+		return nil, fmt.Errorf("failed to build jsonnet: %w", err)
+	}
+
+	// Extract the yaml stream and checksum from the buildOutput
+	manifests, err := buildOutput.YAMLStream()
+	if err != nil {
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
+			revision, meta.ReconciliationFailedReason, err.Error()),
+		); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
+		return nil, fmt.Errorf("failed to convert jsonnet output to yaml stream: %w", err)
+	}
+	checksum, err := buildOutput.SHA1Sum()
+	if err != nil {
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
+			revision, meta.ReconciliationFailedReason, err.Error()),
+		); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
+		return nil, fmt.Errorf("failed to compute checksum of jsonnet output: %w", err)
+	}
+
+	// Create a snapshot from the build output
+	snapshot, err := konfigurationv1.NewSnapshot(manifests, checksum)
+	if err != nil {
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
+		return nil, fmt.Errorf("failed to compute snapshot of manifests: %w", err)
 	}
 
 	// Create a resource manager for the konfiguration
 	manager := resources.NewResourceManager(kubeClient, konfig)
 
 	// Reconcile resources from the output
-	if changeset, err := manager.Reconcile(ctx, snapshot, manifest); err != nil {
+	if changeset, err := manager.Reconcile(ctx, snapshot, manifests); err != nil {
 		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
 			revision, meta.ReconciliationFailedReason, err.Error()),
 		); statusErr != nil {
@@ -297,7 +348,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 			Message:  changeset,
 			Metadata: map[string]string{},
 		})
-		return fmt.Errorf("failed to reconcile manifests: %w", err)
+		return nil, fmt.Errorf("failed to reconcile manifests: %w", err)
 	} else if changeset != "" {
 		r.event(ctx, konfig, &EventData{
 			Revision: revision,
@@ -321,7 +372,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 			Message:  changeset,
 			Metadata: map[string]string{},
 		})
-		return fmt.Errorf(msg)
+		return nil, fmt.Errorf(msg)
 	} else if changeset != "" {
 		r.event(ctx, konfig, &EventData{
 			Revision: revision,
@@ -338,10 +389,10 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 		); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
-		return err
+		return nil, err
 	}
 
-	return nil
+	return snapshot, nil
 }
 
 func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *konfigurationv1.Konfiguration) (ctrl.Result, error) {
@@ -350,14 +401,19 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *k
 	// If the konfig had prunening enabled and wasn't suspended for deletion
 	// Run a kubecfg delete.
 	if konfig.GCEnabled() && !konfig.IsSuspended() {
-		dirPath, _, err := r.writeManifest(ctx, konfig, []byte{})
+		// Allocate a new temp directory for the current reconcile's workspace
+		dirPath, err := ioutil.TempDir("", konfig.GetName())
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		if err != nil {
 			r.event(ctx, konfig, &EventData{
 				Revision: konfig.Status.LastAppliedRevision,
 				Severity: events.EventSeverityError,
 				Message:  err.Error(),
 			})
-			reqLogger.Info("Could not write the generated manifest to disk")
+			reqLogger.Info("Could not write the allocate a temp directory")
 			return ctrl.Result{}, err
 		}
 
@@ -406,24 +462,6 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *k
 
 	// Stop reconciliation as the object is being deleted
 	return ctrl.Result{}, nil
-}
-
-// writeManifest prepares a temporary directory and writes the built manifest to disks
-func (r *KonfigurationReconciler) writeManifest(ctx context.Context, konfig *konfigurationv1.Konfiguration, manifest []byte) (dirPath, manifestPath string, err error) {
-	// Allocate a new temp directory for the generated manifests and/or kubeconfig
-	dirPath, err = ioutil.TempDir("", konfig.GetName())
-	if err != nil {
-		return
-	}
-
-	// Write the manifest to the temp directory - kubecfg needs to know the file extension
-	// to know it's yaml at the moment.
-	manifestPath = filepath.Join(dirPath, "manifest.yaml")
-	if err = ioutil.WriteFile(manifestPath, manifest, 0600); err != nil {
-		return
-	}
-
-	return
 }
 
 // checkHealth checks the healthiness of the konfiguration after an apply

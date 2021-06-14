@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/go-jsonnet"
+
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/dependency"
 
@@ -90,25 +92,21 @@ func (k *Konfiguration) GetPath() string { return k.Spec.Path }
 // GetVariables returns the external and top level arguments to pass to kubecfg.
 func (k *Konfiguration) GetVariables() *Variables { return k.Spec.Variables }
 
-// AppendToArgs formats the configured variables to kubecfg command line arguments.
-func (v *Variables) AppendToArgs(args []string) []string {
+// Inject will inject the configured variables into the vm.
+func (v *Variables) InjectInto(vm *jsonnet.VM) {
 	for k, v := range v.ExtStr {
-		args = append(args, []string{"--ext-str", fmt.Sprintf("%s=%s", k, v)}...)
+		vm.ExtVar(k, v)
 	}
 	for k, v := range v.ExtCode {
-		args = append(args, []string{"--ext-code", fmt.Sprintf("%s=%s", k, v)}...)
+		vm.ExtCode(k, v)
 	}
 	for k, v := range v.TLAStr {
-		args = append(args, []string{"--tla-str", fmt.Sprintf("%s=%s", k, v)}...)
+		vm.TLAVar(k, v)
 	}
 	for k, v := range v.TLACode {
-		args = append(args, []string{"--tla-code", fmt.Sprintf("%s=%s", k, v)}...)
+		vm.TLACode(k, v)
 	}
-	return args
 }
-
-// GetKubecfgArgs returns user-defined arguments to pass to kubecfg.
-func (k *Konfiguration) GetKubecfgArgs() []string { return k.Spec.KubecfgArgs }
 
 // GCEnabled returns whether garbage collection should be conducted on kubecfg
 // manifests.
@@ -148,3 +146,9 @@ func (k *Konfiguration) GetSourceRef() *CrossNamespaceSourceReference {
 	}
 	return nil
 }
+
+// GetJsonnetPaths returns the search paths to configure in the jsonnet VM.
+func (k *Konfiguration) GetJsonnetPaths() []string { return k.Spec.JsonnetPaths }
+
+// GetJsonnetURLs returns the URL paths to configure in the jsonnet VM.
+func (k *Konfiguration) GetJsonnetURLs() []string { return k.Spec.JsonnetURLs }
