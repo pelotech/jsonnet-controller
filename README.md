@@ -134,7 +134,7 @@ make docker-push
 
 The instructions below assume you are using [`k3d`](https://k3d.io) for running a local kubernetes cluster. The instructions will work mostly the same for `kind`, `minikube`, etc. as well.
 
-The most accurate installation manifest is the [jsonnet](config/jsonnet/kubecfg-operator.jsonnet) file. 
+The most accurate installation manifest is the [jsonnet](config/jsonnet/jsonnet-controller.jsonnet) file. 
 You may also use the `kubebuilder` generated Kustomize manifests, but you will need to bind `cluster-admin` privileges to the manager yourself.
 
 To use the `jsonnet` you will need to install [`kubecfg`](https://github.com/bitnami/kubecfg/releases).
@@ -153,7 +153,7 @@ flux install
 k3d image import ghcr.io/pelotech/jsonnet-controller:latest
 
 # Deploy the manager and CRDs to the cluster using kubecfg.
-kubecfg update config/jsonnet/kubecfg-operator.jsonnet
+kubecfg update config/jsonnet/jsonnet-controller.jsonnet
 ```
 
 There are also `Makefile` helpers to do the equivalent of all of the above:
