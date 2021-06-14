@@ -23,7 +23,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - apps.kubecfg.io
+  - jsonnet.io
   resources:
   - konfigurations
   verbs:
@@ -35,13 +35,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - apps.kubecfg.io
+  - jsonnet.io
   resources:
   - konfigurations/finalizers
   verbs:
   - update
 - apiGroups:
-  - apps.kubecfg.io
+  - jsonnet.io
   resources:
   - konfigurations/status
   verbs:

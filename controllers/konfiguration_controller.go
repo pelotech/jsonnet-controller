@@ -117,9 +117,9 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 // The below do not cover all needed rbac permissions. It should really be defined by the user
 // what they want the manager to be capable of.
 
-// +kubebuilder:rbac:groups=apps.kubecfg.io,resources=konfigurations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps.kubecfg.io,resources=konfigurations/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=apps.kubecfg.io,resources=konfigurations/finalizers,verbs=update
+// +kubebuilder:rbac:groups=jsonnet.io,resources=konfigurations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=jsonnet.io,resources=konfigurations/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=jsonnet.io,resources=konfigurations/finalizers,verbs=update
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=buckets;gitrepositories,verbs=get;list;watch
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=buckets/status;gitrepositories/status,verbs=get
 // +kubebuilder:rbac:groups="",resources=secrets;serviceaccounts,verbs=get;list;watch
