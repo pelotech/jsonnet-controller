@@ -12,7 +12,7 @@ function(
     pullPolicy='IfNotPresent',
     expose=false,
     hostname='localhost',
-    ingressClass='') {
+    ingressClass='default') {
 
     local this = self,
 
