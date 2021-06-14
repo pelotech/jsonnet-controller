@@ -82,9 +82,12 @@ REFDOCS = $(CURDIR)/bin/refdocs
 $(REFDOCS):
 	cd hack && go build -o $(REFDOCS) .
 
-api-docs: $(REFDOCS)
+api-docs: $(REFDOCS)  ## Generate API documentation
 	go mod vendor
 	bash hack/update-api-docs.sh
+
+bundle: ## Generate the bundle manifest
+	$(KUBECFG) show config/jsonnet/jsonnet-controller.jsonnet > config/bundle/manifest.yaml
 
 ##@ Deployment
 

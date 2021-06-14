@@ -14,9 +14,13 @@ API Documentation is available [here](doc/konfigurations.md#Konfiguration).
 
 ### Installing
 
-You can use either [`kustomize`](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/) or [`kubecfg`](https://github.com/bitnami/kubecfg/releases) to install the controller and its CRDs.
+You can use either `kubectl`, [`kustomize`](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/), [`kubecfg`](https://github.com/bitnami/kubecfg/releases) to install the controller and its CRDs.
 
 ```bash
+# Using kubectl - A bundle manifest is included in the repository that is
+# the output of the jsonnet with the default values.
+kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/main/config/bundle/manifest.yaml
+
 # Using kubecfg - import and extend this file for modifications
 ## The kubecfg assumes the `flux-system` namespace is present already.
 ## If it isn't, create it (or import the file and set `create_namespace: true`):
