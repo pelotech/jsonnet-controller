@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/fluxcd/pkg/apis/meta"
 
@@ -37,7 +36,6 @@ type EventData struct {
 func (r *KonfigurationReconciler) event(ctx context.Context, konfig *konfigurationv1.Konfiguration, data *EventData) {
 	log := log.FromContext(ctx)
 
-	log.Info("Sending event", "Event", fmt.Sprintf("%+v", data))
 	r.EventRecorder.Event(konfig, "Normal", data.Severity, data.Message)
 	objRef, err := reference.GetReference(r.Scheme, konfig)
 	if err != nil {

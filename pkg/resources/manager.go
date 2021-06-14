@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/imdario/mergo"
+	"github.com/go-logr/logr"
 	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
@@ -71,11 +71,12 @@ type manager struct {
 }
 
 func (m *manager) Reconcile(ctx context.Context, snapshot *konfigurationv1.Snapshot, manifest []byte) (changeSet string, err error) {
-	ctx, cancel := context.WithTimeout(ctx, m.parent.GetTimeout())
+	log := log.FromContext(ctx)
+
+	reconcileCtx, cancel := context.WithTimeout(ctx, m.parent.GetTimeout())
 	defer cancel()
 
 	reader := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 2048)
-	changeSet = "\n"
 
 	for {
 		// Read an object off the stream
@@ -99,21 +100,24 @@ func (m *manager) Reconcile(ctx context.Context, snapshot *konfigurationv1.Snaps
 		if toReconcile.IsList() {
 			err = toReconcile.EachListItem(func(item runtime.Object) error {
 				obj := item.(*unstructured.Unstructured)
-				thischange, err = m.reconcileUnstructured(ctx, obj, snapshot.Checksum)
-				changeSet += thischange
+				thischange, err = m.reconcileUnstructured(reconcileCtx, log, obj, snapshot.Checksum)
+				if thischange != "" {
+					changeSet += thischange
+				}
 				return err
 			})
 			if err != nil {
 				return
 			}
 			// Decode next object in the stream
-			changeSet += thischange
 			continue
 		}
 
 		// Reconcile the object
-		thischange, err = m.reconcileUnstructured(ctx, toReconcile, snapshot.Checksum)
-		changeSet += thischange
+		thischange, err = m.reconcileUnstructured(reconcileCtx, log, toReconcile, snapshot.Checksum)
+		if thischange != "" {
+			changeSet += thischange
+		}
 		if err != nil {
 			return
 		}
@@ -141,9 +145,8 @@ func (m *manager) Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigur
 	}
 
 	log := log.FromContext(ctx)
-	changeSet = "\n"
 
-	ctx, cancel := context.WithTimeout(ctx, m.parent.GetTimeout())
+	pruneCtx, cancel := context.WithTimeout(ctx, m.parent.GetTimeout())
 	defer cancel()
 
 	// Iterate namespaced objects
@@ -159,7 +162,7 @@ func (m *manager) Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigur
 			})
 			log.Info(fmt.Sprintf("Checking for orphaned %ss in %s namespace", gvk.Kind, ns))
 
-			err := m.List(ctx, ulist, client.InNamespace(ns), m.matchingLabels())
+			err := m.List(pruneCtx, ulist, client.InNamespace(ns), m.matchingLabels())
 			if err != nil {
 				changeSet += fmt.Sprintf("failed to list objects for %s kind: %s\n", gvk.Kind, err.Error())
 				success = false
@@ -178,7 +181,7 @@ func (m *manager) Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigur
 
 				if m.isOrphaned(&item, checksum) && item.GetDeletionTimestamp().IsZero() {
 					log.Info(fmt.Sprintf("Deleting orphaned object %s", id))
-					err = m.Delete(ctx, &item)
+					err = m.Delete(pruneCtx, &item)
 					if err != nil {
 						changeSet += fmt.Sprintf("delete failed for %s: %v\n", id, err)
 						success = false
@@ -203,7 +206,7 @@ func (m *manager) Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigur
 		})
 
 		log.Info(fmt.Sprintf("Checking for orphaned %ss", gvk.Kind))
-		err := m.List(ctx, ulist, m.matchingLabels())
+		err := m.List(pruneCtx, ulist, m.matchingLabels())
 
 		if err != nil {
 			changeSet += fmt.Sprintf("failed to list objects for %s kind: %s\n", gvk.Kind, err.Error())
@@ -222,7 +225,7 @@ func (m *manager) Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigur
 
 			if m.isOrphaned(&item, checksum) && item.GetDeletionTimestamp().IsZero() {
 				log.Info(fmt.Sprintf("Deleting orphaned object %s", id))
-				err = m.Delete(ctx, &item)
+				err = m.Delete(pruneCtx, &item)
 				if err != nil {
 					changeSet += fmt.Sprintf("delete failed for %s: %v\n", id, err)
 					success = false
@@ -240,10 +243,21 @@ func (m *manager) Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigur
 	return
 }
 
-func (m *manager) reconcileUnstructured(ctx context.Context, obj *unstructured.Unstructured, fullChecksum string) (string, error) {
+func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, obj *unstructured.Unstructured, fullChecksum string) (string, error) {
 	nn := client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	id := fmt.Sprintf("%s/%s", obj.GetKind(), nn.String())
-	log := log.FromContext(ctx)
+
+	// Set the garbage collection labels on the object
+	// This needs to happen before computing the checksum for the object as they will
+	// update labels to make sure an object is not pruned.
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	for k, v := range m.gcLabels(fullChecksum) {
+		labels[k] = v
+	}
+	obj.SetLabels(labels)
 
 	// Compute the checksum for this object
 	checksum, err := m.computeObjectChecksum(obj)
@@ -258,16 +272,6 @@ func (m *manager) reconcileUnstructured(ctx context.Context, obj *unstructured.U
 	}
 	annotations[konfigurationv1.LastAppliedConfigAnnotation] = checksum
 	obj.SetAnnotations(annotations)
-
-	// Set the garbage collection labels on the object
-	labels := obj.GetLabels()
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	for k, v := range m.gcLabels(fullChecksum) {
-		labels[k] = v
-	}
-	obj.SetLabels(labels)
 
 	// Attempt to look up the object
 	found := &unstructured.Unstructured{}
@@ -295,8 +299,6 @@ func (m *manager) reconcileUnstructured(ctx context.Context, obj *unstructured.U
 	// The object was found, check that its checksum matches that computed above
 	foundAnnotations := found.GetAnnotations()
 
-	// TODO: More intelligent patching
-
 	if foundAnnotations == nil {
 		// No annotations - we need to patch the object
 		log.Info(fmt.Sprintf("Existing %s '%s' has no annotations, updating", obj.GetKind(), nn.String()))
@@ -321,16 +323,13 @@ func (m *manager) reconcileUnstructured(ctx context.Context, obj *unstructured.U
 }
 
 func (m *manager) patch(ctx context.Context, old, new *unstructured.Unstructured, id string) (string, error) {
-	if err := mergo.MergeWithOverwrite(old, new); err != nil {
-		return fmt.Sprintf("update failed for '%s' (merge): %s\n", id, err.Error()), err
-	}
 	if m.parent.ShouldValidate() {
-		if err := m.Update(ctx, old, client.DryRunAll); err != nil {
+		if err := m.Patch(ctx, new, client.Merge, &client.PatchOptions{DryRun: []string{"All"}}); err != nil {
 			return fmt.Sprintf("update failed for '%s' (dry-run): %s\n", id, err.Error()), err
 		}
 	}
-	if err := m.Update(ctx, old); err != nil {
-		return fmt.Sprintf("update failed for '%s': %s\n", id, err.Error()), err
+	if err := m.Patch(ctx, new, client.Merge); err != nil {
+		return fmt.Sprintf("update failed for '%s' (dry-run): %s\n", id, err.Error()), err
 	}
 	return fmt.Sprintf("%s configured\n", id), nil
 }

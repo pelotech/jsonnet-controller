@@ -298,7 +298,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 			Metadata: map[string]string{},
 		})
 		return fmt.Errorf("failed to reconcile manifests: %w", err)
-	} else {
+	} else if changeset != "" {
 		r.event(ctx, konfig, &EventData{
 			Revision: revision,
 			Severity: events.EventSeverityInfo,

@@ -26,7 +26,9 @@ import (
 
 	goyaml "gopkg.in/yaml.v2"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
 	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
@@ -63,6 +65,7 @@ func (k *KonfigurationReconciler) build(ctx context.Context, konfig *konfigurati
 	}
 
 	reader := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(showOutput), 2048)
+
 	objects := make(ObjectSorter, 0)
 	for {
 		var obj unstructured.Unstructured
@@ -78,14 +81,14 @@ func (k *KonfigurationReconciler) build(ctx context.Context, konfig *konfigurati
 				return nil, "", err
 			}
 			for _, o := range objList.Items {
-				if o.GetNamespace() == "" {
-					o.SetNamespace(konfig.GetNamespace())
+				if err := k.checkNamespace(konfig, &o); err != nil {
+					return nil, "", err
 				}
 				objects = append(objects, &o)
 			}
 		} else {
-			if obj.GetNamespace() == "" {
-				obj.SetNamespace(konfig.GetNamespace())
+			if err := k.checkNamespace(konfig, &obj); err != nil {
+				return nil, "", err
 			}
 			objects = append(objects, &obj)
 		}
@@ -93,24 +96,52 @@ func (k *KonfigurationReconciler) build(ctx context.Context, konfig *konfigurati
 
 	sort.Sort(objects)
 
-	sortedStream := "---\n"
+	sortedStream, err := toYamlStream(objects)
+	if err != nil {
+		return nil, "", err
+	}
+
+	h := sha1.New()
+	if _, err := h.Write(sortedStream); err != nil {
+		return nil, "", err
+	}
+
+	return sortedStream, fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+func toYamlStream(objects ObjectSorter) ([]byte, error) {
+	stream := "---\n"
 
 	for i, obj := range objects {
 		out, err := goyaml.Marshal(obj.Object)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
-		sortedStream += string(out)
+		stream += string(out)
 		if i == len(objects)-1 {
 			break
 		}
-		sortedStream += "\n---\n"
+		stream += "\n---\n"
 	}
 
-	h := sha1.New()
-	if _, err := io.WriteString(h, sortedStream); err != nil {
-		return nil, "", err
-	}
+	return []byte(stream), nil
+}
 
-	return []byte(sortedStream), fmt.Sprintf("%x", h.Sum(nil)), nil
+func (r *KonfigurationReconciler) checkNamespace(konfig *konfigurationv1.Konfiguration, obj *unstructured.Unstructured) error {
+	// retrieve the rest mapping for this gvk
+	gvk := obj.GroupVersionKind()
+	restMapping, err := r.RESTMapper().RESTMapping(schema.GroupKind{
+		Group: gvk.Group,
+		Kind:  gvk.Kind,
+	}, gvk.Version)
+	if err != nil {
+		return err
+	}
+	// if it is a namespaced object, make sure there is a namespace defined
+	if restMapping.Scope.Name() == meta.RESTScopeNameNamespace {
+		if obj.GetNamespace() == "" {
+			obj.SetNamespace(konfig.GetNamespace())
+		}
+	}
+	return nil
 }
