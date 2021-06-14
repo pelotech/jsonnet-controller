@@ -75,6 +75,7 @@ func (m *manager) Reconcile(ctx context.Context, snapshot *konfigurationv1.Snaps
 	defer cancel()
 
 	reader := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 2048)
+	changeSet = "\n"
 
 	for {
 		// Read an object off the stream
@@ -140,6 +141,7 @@ func (m *manager) Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigur
 	}
 
 	log := log.FromContext(ctx)
+	changeSet = "\n"
 
 	ctx, cancel := context.WithTimeout(ctx, m.parent.GetTimeout())
 	defer cancel()
