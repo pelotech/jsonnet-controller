@@ -225,6 +225,8 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}, nil
 	}
 
+	updated := snapshot.Checksum != konfig.Status.Snapshot.Checksum
+
 	// Set the konfiguration as ready
 	msg := fmt.Sprintf("Applied revision: %s", revision)
 	if err := konfig.SetReady(ctx, r.Client, snapshot, konfigurationv1.NewStatusMeta(
@@ -234,14 +236,17 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	reqLogger.Info(fmt.Sprintf("Reconcile finished, next run in %s", konfig.GetInterval().String()), "Revision", revision)
-	r.event(ctx, konfig, &EventData{
-		Revision: revision,
-		Severity: events.EventSeverityInfo,
-		Message:  "Update Complete",
-		Metadata: map[string]string{
-			"commit_status": "update",
-		},
-	})
+
+	if updated {
+		r.event(ctx, konfig, &EventData{
+			Revision: revision,
+			Severity: events.EventSeverityInfo,
+			Message:  "Update Complete",
+			Metadata: map[string]string{
+				"commit_status": "update",
+			},
+		})
+	}
 	return ctrl.Result{
 		RequeueAfter: konfig.GetInterval(),
 	}, nil
