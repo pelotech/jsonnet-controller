@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/go-logr/logr"
-	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
 )
 
 // ReconcileeWithTimeout is an interface extending client.Object that includes

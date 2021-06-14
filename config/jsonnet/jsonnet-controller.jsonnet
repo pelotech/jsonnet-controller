@@ -5,7 +5,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
     local this = self,
 
     // The prefix to use for names of resources
-    name_prefix:: 'kubecfg-controller',
+    name_prefix:: 'jsonnet-controller',
     // The namespace to deploy resources in
     namespace:: 'flux-system',
     // Whether to create the namespace
@@ -23,7 +23,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
     },
 
     // Manager Deployment options
-    manager_image:: 'ghcr.io/pelotech/kubecfg-controller:latest',
+    manager_image:: 'ghcr.io/pelotech/jsonnet-controller:latest',
     manager_pull_policy:: 'IfNotPresent',
     manager_replicas:: 1,
 
@@ -31,7 +31,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
     install_crds:: true,
 
     crds: if this.install_crds then [
-        kubecfg.parseYaml(importstr '../crd/bases/kubecfg.io_konfigurations.yaml'),
+        kubecfg.parseYaml(importstr '../crd/bases/jsonnet.io_konfigurations.yaml'),
     ] else null,
 
     control_namespace: if this.create_namespace then kube.Namespace(this.namespace) {

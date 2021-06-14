@@ -1,8 +1,8 @@
 Packages:
 
--   [kubecfg.io/v1](#kubecfg.io%2fv1)
+-   [jsonnet.io/v1](#jsonnet.io%2fv1)
 
-## kubecfg.io/v1
+## jsonnet.io/v1
 
 Package v1 file doc.go required for the doc generator to register this
 as an API
@@ -11,7 +11,7 @@ Resource Types:
 
 ### CrossNamespaceSourceReference
 
-(*Appears on:*[KonfigurationSpec](#kubecfg.io/v1.KonfigurationSpec))
+(*Appears on:*[KonfigurationSpec](#KonfigurationSpec))
 
 CrossNamespaceSourceReference contains enough information to let you
 locate the typed referenced object at cluster level
@@ -76,7 +76,7 @@ Konfiguration is the Schema for the konfigurations API
 </tr>
 <tr class="even">
 <td><code>spec</code><br />
-<em><a href="#kubecfg.io/v1.KonfigurationSpec">KonfigurationSpec</a></em></td>
+<em><a href="#KonfigurationSpec">KonfigurationSpec</a></em></td>
 <td><br />
 <br />
 
@@ -105,7 +105,7 @@ Konfiguration is the Schema for the konfigurations API
 </tr>
 <tr class="even">
 <td><code>kubeConfig</code><br />
-<em><a href="#kubecfg.io/v1.KubeConfig">KubeConfig</a></em></td>
+<em><a href="#KubeConfig">KubeConfig</a></em></td>
 <td><em>(Optional)</em>
 <p>The KubeConfig for reconciling the Konfiguration on a remote cluster. Defaults to the in-cluster configuration.</p></td>
 </tr>
@@ -128,7 +128,7 @@ Konfiguration is the Schema for the konfigurations API
 </tr>
 <tr class="even">
 <td><code>variables</code><br />
-<em><a href="#kubecfg.io/v1.Variables">Variables</a></em></td>
+<em><a href="#Variables">Variables</a></em></td>
 <td><em>(Optional)</em>
 <p>Variables to use when invoking kubecfg to render manifests.</p></td>
 </tr>
@@ -140,7 +140,7 @@ Konfiguration is the Schema for the konfigurations API
 </tr>
 <tr class="even">
 <td><code>sourceRef</code><br />
-<em><a href="#kubecfg.io/v1.CrossNamespaceSourceReference">CrossNamespaceSourceReference</a></em></td>
+<em><a href="#CrossNamespaceSourceReference">CrossNamespaceSourceReference</a></em></td>
 <td><em>(Optional)</em>
 <p>Reference of the source where the jsonnet, json, or yaml file(s) are.</p></td>
 </tr>
@@ -184,7 +184,7 @@ Konfiguration is the Schema for the konfigurations API
 </tr>
 <tr class="odd">
 <td><code>status</code><br />
-<em><a href="#kubecfg.io/v1.KonfigurationStatus">KonfigurationStatus</a></em></td>
+<em><a href="#KonfigurationStatus">KonfigurationStatus</a></em></td>
 <td></td>
 </tr>
 </tbody>
@@ -192,7 +192,7 @@ Konfiguration is the Schema for the konfigurations API
 
 ### KonfigurationSpec
 
-(*Appears on:*[Konfiguration](#kubecfg.io/v1.Konfiguration))
+(*Appears on:*[Konfiguration](#Konfiguration))
 
 KonfigurationSpec defines the desired state of a Konfiguration
 
@@ -227,7 +227,7 @@ KonfigurationSpec defines the desired state of a Konfiguration
 </tr>
 <tr class="even">
 <td><code>kubeConfig</code><br />
-<em><a href="#kubecfg.io/v1.KubeConfig">KubeConfig</a></em></td>
+<em><a href="#KubeConfig">KubeConfig</a></em></td>
 <td><em>(Optional)</em>
 <p>The KubeConfig for reconciling the Konfiguration on a remote cluster. Defaults to the in-cluster configuration.</p></td>
 </tr>
@@ -250,7 +250,7 @@ KonfigurationSpec defines the desired state of a Konfiguration
 </tr>
 <tr class="even">
 <td><code>variables</code><br />
-<em><a href="#kubecfg.io/v1.Variables">Variables</a></em></td>
+<em><a href="#Variables">Variables</a></em></td>
 <td><em>(Optional)</em>
 <p>Variables to use when invoking kubecfg to render manifests.</p></td>
 </tr>
@@ -262,7 +262,7 @@ KonfigurationSpec defines the desired state of a Konfiguration
 </tr>
 <tr class="even">
 <td><code>sourceRef</code><br />
-<em><a href="#kubecfg.io/v1.CrossNamespaceSourceReference">CrossNamespaceSourceReference</a></em></td>
+<em><a href="#CrossNamespaceSourceReference">CrossNamespaceSourceReference</a></em></td>
 <td><em>(Optional)</em>
 <p>Reference of the source where the jsonnet, json, or yaml file(s) are.</p></td>
 </tr>
@@ -306,7 +306,7 @@ KonfigurationSpec defines the desired state of a Konfiguration
 
 ### KonfigurationStatus
 
-(*Appears on:*[Konfiguration](#kubecfg.io/v1.Konfiguration))
+(*Appears on:*[Konfiguration](#Konfiguration))
 
 KonfigurationStatus defines the observed state of Konfiguration
 
@@ -347,7 +347,7 @@ KonfigurationStatus defines the observed state of Konfiguration
 </tr>
 <tr class="odd">
 <td><code>snapshot</code><br />
-<em><a href="#kubecfg.io/v1.Snapshot">Snapshot</a></em></td>
+<em><a href="#Snapshot">Snapshot</a></em></td>
 <td><em>(Optional)</em>
 <p>The last successfully applied revision metadata.</p></td>
 </tr>
@@ -356,7 +356,7 @@ KonfigurationStatus defines the observed state of Konfiguration
 
 ### KubeConfig
 
-(*Appears on:*[KonfigurationSpec](#kubecfg.io/v1.KonfigurationSpec))
+(*Appears on:*[KonfigurationSpec](#KonfigurationSpec))
 
 KubeConfig holds the configuration for where to fetch the contents of a
 kubeconfig file.
@@ -383,7 +383,7 @@ kubeconfig file.
 
 ### Snapshot
 
-(*Appears on:*[KonfigurationStatus](#kubecfg.io/v1.KonfigurationStatus))
+(*Appears on:*[KonfigurationStatus](#KonfigurationStatus))
 
 Snapshot holds the metadata of the Kubernetes objects generated for a
 source revision
@@ -407,7 +407,7 @@ source revision
 </tr>
 <tr class="even">
 <td><code>entries</code><br />
-<em><a href="#kubecfg.io/v1.SnapshotEntry">[]SnapshotEntry</a></em></td>
+<em><a href="#SnapshotEntry">[]SnapshotEntry</a></em></td>
 <td><p>A list of Kubernetes kinds grouped by namespace.</p></td>
 </tr>
 </tbody>
@@ -415,7 +415,7 @@ source revision
 
 ### SnapshotEntry
 
-(*Appears on:*[Snapshot](#kubecfg.io/v1.Snapshot))
+(*Appears on:*[Snapshot](#Snapshot))
 
 Snapshot holds the metadata of namespaced Kubernetes objects
 
@@ -479,7 +479,7 @@ Snapshot holds the metadata of namespaced Kubernetes objects
 
 ### Variables
 
-(*Appears on:*[KonfigurationSpec](#kubecfg.io/v1.KonfigurationSpec))
+(*Appears on:*[KonfigurationSpec](#KonfigurationSpec))
 
 Variables describe code/strings for external variables and top-level
 arguments.
@@ -525,4 +525,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `4203865`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `6dac9e7`.*

@@ -1,4 +1,4 @@
-module github.com/pelotech/kubecfg-operator
+module github.com/pelotech/jsonnet-controller
 
 go 1.16
 

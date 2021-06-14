@@ -1,7 +1,7 @@
 
 VERSION ?= latest
 # Image URL to use all building/pushing image targets
-IMG ?= ghcr.io/pelotech/kubecfg-controller:$(VERSION)
+IMG ?= ghcr.io/pelotech/jsonnet-controller:$(VERSION)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -127,6 +127,7 @@ endef
 license-headers:
 	for i in `find . -type f \
 		-not -wholename '.git/*' \
+		-not -wholename './vendor/*' \
 		-name '*.go'` ; do \
 			if ! grep -q Copyright $$i ; then cat hack/boilerplate.go.txt $$i > $$i.new && mv $$i.new $$i ; fi ; \
 	done
@@ -137,7 +138,7 @@ K3D          ?= k3d
 KUBECTL      ?= kubectl
 KUBECFG      ?= kubecfg
 FLUX         ?= flux
-CLUSTER_NAME ?= kubecfg-operator
+CLUSTER_NAME ?= jsonnet-controller
 K8S_VER      ?= v1.20.6
 SOURCE_VER   ?= v0.14.0
 K3S_IMG      ?= rancher/k3s:$(K8S_VER)-k3s1
@@ -166,15 +167,15 @@ docker-load: docker-build ## Load the manager image into the k3d cluster.
 	$(K3D) image import --cluster $(CLUSTER_NAME) $(IMG)
 
 deploy: ## Deploy the manager and CRDs into the k3d cluster.
-	$(KUBECFG) --context=$(CONTEXT) update config/jsonnet/kubecfg-operator.jsonnet
+	$(KUBECFG) --context=$(CONTEXT) update config/jsonnet/jsonnet-controller.jsonnet
 
 restart:
 	$(KUBECTL) delete --context=$(CONTEXT) \
-		-n flux-system -l app=kubecfg-controller pod 
+		-n flux-system -l app=jsonnet-controller pod 
 
 samples: ## Deploy the sample source-controller manifests into the cluster.
 	$(KUBECTL) apply --context=$(CONTEXT) \
-		-f config/samples/kubecfg-operator-git-repository.yaml \
+		-f config/samples/jsonnet-controller-git-repository.yaml \
 		-f config/samples/whoami-source-controller-konfiguration.yaml
 
 full-local-env: cluster flux-install docker-load deploy samples ## Creates a full local environment (cluster, flux-full-install, docker-load, deploy, samples).

@@ -1,13 +1,12 @@
-# kubecfg-operator
+# jsonnet-controller
 
-A fluxcd controller for managing remote manifests with kubecfg
+A fluxcd controller for managing manifests declared in jsonnet.
+
+Kubecfg (and its internal libraries) as well as Tanka-style directories are supported.
 
 ---
 
 This project is in very early stages proof-of-concept. Only `latest` images are published, and they are not guaranteed stable at the moment.
-
-The ultimate goal is to finish integratating this project with the Flux [GitOps Toolkit APIs](https://fluxcd.io/docs/gitops-toolkit/), along
-with the existing functionality for absolute URLs.
 
 ## Quickstart
 
@@ -22,12 +21,12 @@ You can use either `kustomize` or `kubecfg` to install the controller and its CR
 ## The kubecfg assumes the `flux-system` namespace is present already.
 ## If it isn't, create it (or import the file and set `create_namespace: true`):
 ##    kubectl create ns flux-system
-kubecfg update config/jsonnet/kubecfg-operator.jsonnet
+kubecfg update config/jsonnet/jsonnet-controller.jsonnet
 
 # Using kustomize
 cd config/manager
 ## This is the current value, but if you want to change the image
-kustomize edit set image controller=ghcr.io/pelotech/kubecfg-controller:latest
+kustomize edit set image controller=ghcr.io/pelotech/jsonnet-controller:latest
 ## Deploy
 kustomize build . | kubectl apply -f -
 ```
@@ -37,24 +36,24 @@ kustomize build . | kubectl apply -f -
 First (at the moment this is optional), define a `GitRepository` source for your `Konfiguration`:
 
 ```yaml
-# config/samples/kubecfg-operator-git-repository.yaml
+# config/samples/jsonnet-controller-git-repository.yaml
 apiVersion: source.toolkit.fluxcd.io/v1beta1
 kind: GitRepository
 metadata:
-  name: kubecfg-samples
+  name: jsonnet-samples
   namespace: flux-system
 spec:
   interval: 30s
   ref:
     branch: main
-  url: https://github.com/pelotech/kubecfg-operator
+  url: https://github.com/pelotech/jsonnet-controller
 ```
 
 Finally, create a `Konfiguration` for your application:
 
 ```yaml
 # config/samples/whoami-source-controller-konfiguration.yaml
-apiVersion: apps.kubecfg.io/v1
+apiVersion: jsonnet.io/v1
 kind: Konfiguration
 metadata:
   name: whoami
@@ -69,7 +68,7 @@ spec:
       port: '8080'
   sourceRef:
     kind: GitRepository
-    name: kubecfg-samples
+    name: jsonnet-samples
     namespace: flux-system
 ```
 
@@ -77,13 +76,13 @@ This may change, but for now you can choose to skip the `sourceRef` and supply a
 The file will be checked for changes at the provided interval.
 
 ```yaml
-apiVersion: apps.kubecfg.io/v1
+apiVersion: jsonnet.io/v1
 kind: Konfiguration
 metadata:
   name: whoami
 spec:
   interval: 30s
-  path: https://raw.githubusercontent.com/pelotech/kubecfg-operator/main/config/jsonnet/whoami-tla.jsonnet
+  path: https://raw.githubusercontent.com/pelotech/jsonnet-controller/main/config/jsonnet/whoami-tla.jsonnet
   prune: true
   variables:
     tlaStr:
@@ -105,6 +104,8 @@ NAME     READY   STATUS                                                         
 whoami   True    Applied revision: main/0bceb3d69b046f51565a345f3105febbd7be62bd   1m38s   main/0bceb3d69b046f51565a345f3105febbd7be62bd   main/0bceb3d69b046f51565a345f3105febbd7be62bd
 ```
 
+See the [samples](config/samples) directory for more examples.
+
 ## Development
 
 ### Building
@@ -123,7 +124,7 @@ make generate manifests
 make docker-build
 
 # Builds the docker image with a custom tag
-make docker-build IMG=my.repo.com/kubecfg-controller:latest
+make docker-build IMG=my.repo.com/jsonnet-controller:latest
 
 # Push the docker image (also accepts the IMG argument)
 make docker-push
@@ -149,7 +150,7 @@ flux install
 # to a repository. Replace the image name with any overrides you did.
 # You can skip this step if you wish to pull the image from the public
 # repository.
-k3d image import ghcr.io/pelotech/kubecfg-controller:latest
+k3d image import ghcr.io/pelotech/jsonnet-controller:latest
 
 # Deploy the manager and CRDs to the cluster using kubecfg.
 kubecfg update config/jsonnet/kubecfg-operator.jsonnet
@@ -165,19 +166,6 @@ make cluster flux-install docker-load deploy
 #                          Load Image    |
 #                                 Deploy Controller and CRDs
 ```
-
-There is a very-simple example of a `Konfiguration` manifest [here](config/samples/whoami-konfiguration.yaml).
-It uses the simple `jsonnet` [whoami-example](config/jsonnet/whoami.jsonnet) included in this repo.
-You can apply it with `kubectl`.
-
-```bash
-kubectl apply -f config/samples/apps_v1_konfiguration.yaml
-```
-
-There are also examples of using this controller with Flux's `source-controller`.
-But, like the rest of this project, this is all very PoC still. 
-The examples use the whoami jsonnet snippets in this repository as well.
-See the example [GitRepository](config/samples/kubecfg-operator-git-repository.yaml) and [Konfiguration](config/samples/whoami-source-controller-konfiguration.yaml).
 
 ---
 

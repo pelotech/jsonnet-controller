@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: konfigurations.kubecfg.io
+  name: konfigurations.jsonnet.io
 spec:
-  group: kubecfg.io
+  group: jsonnet.io
   names:
     kind: Konfiguration
     listKind: KonfigurationList

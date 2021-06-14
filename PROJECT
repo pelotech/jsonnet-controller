@@ -1,16 +1,16 @@
 domain: kubecfg.io
 layout:
 - go.kubebuilder.io/v3
-projectName: kubecfg-operator
-repo: github.com/pelotech/kubecfg-operator
+projectName: jsonnet-controller
+repo: github.com/pelotech/jsonnet-controller
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: kubecfg.io
+  domain: jsonnet.io
   group: apps
   kind: Konfiguration
-  path: github.com/pelotech/kubecfg-operator/api/v1
+  path: github.com/pelotech/jsonnet-controller/api/v1
   version: v1
 version: "3"

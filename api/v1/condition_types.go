@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 Copyright 2021 Pelotech - Apache License, Version 2.0.
- - Adapted for Kubecfg from fluxcd/kustomize-controller
+ - Adapted for jsonnet from fluxcd/kustomize-controller
 */
 
 package v1

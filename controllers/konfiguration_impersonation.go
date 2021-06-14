@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
 )
 
 type KonfigurationImpersonation struct {

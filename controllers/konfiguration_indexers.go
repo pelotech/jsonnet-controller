@@ -27,7 +27,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/dependency"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 
-	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
 )
 
 func (r *KonfigurationReconciler) requestsForRevisionChangeOf(indexKey string) func(obj client.Object) []reconcile.Request {

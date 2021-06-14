@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
 )
 
 func (r *KonfigurationReconciler) checkDependencies(ctx context.Context, konfig *konfigurationv1.Konfiguration) error {

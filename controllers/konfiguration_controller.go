@@ -48,9 +48,9 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-retryablehttp"
 
-	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
-	"github.com/pelotech/kubecfg-operator/pkg/jsonnet"
-	"github.com/pelotech/kubecfg-operator/pkg/resources"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
+	"github.com/pelotech/jsonnet-controller/pkg/jsonnet"
+	"github.com/pelotech/jsonnet-controller/pkg/resources"
 )
 
 // KonfigurationReconciler reconciles a Konfiguration object

@@ -16,5 +16,5 @@ limitations under the License.
 
 // Package v1 file doc.go required for the doc generator to register this as an API
 //
-// +groupName=kubecfg.io
+// +groupName=jsonnet.io
 package v1

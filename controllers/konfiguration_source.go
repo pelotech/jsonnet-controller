@@ -29,7 +29,7 @@ import (
 	"github.com/fluxcd/pkg/untar"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 	"github.com/hashicorp/go-retryablehttp"
-	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

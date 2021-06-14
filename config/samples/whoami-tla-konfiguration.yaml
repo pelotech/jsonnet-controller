@@ -1,11 +1,11 @@
-apiVersion: kubecfg.io/v1
+apiVersion: jsonnet.io/v1
 kind: Konfiguration
 metadata:
   name: konfiguration-sample
 spec:
   interval: 30s
   prune: true
-  path: https://github.com/pelotech/kubecfg-operator/raw/main/config/jsonnet/whoami-tla.jsonnet
+  path: https://github.com/pelotech/jsonnet-controller/raw/main/config/jsonnet/whoami-tla.jsonnet
   variables:
     tlaStr:
       name: 'hello-world'
