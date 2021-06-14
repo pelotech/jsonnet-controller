@@ -79,7 +79,9 @@ func (k *Konfiguration) SetNotReady(ctx context.Context, cl client.Client, meta 
 func (k *Konfiguration) SetNotReadySnapshot(ctx context.Context, cl client.Client, snapshot *Snapshot, meta *StatusMeta) error {
 	k.Status.Snapshot = snapshot
 	k.Status.LastAttemptedRevision = meta.Revision
-	// k.SetHealthiness(metav1.ConditionFalse, reason, reason)
+	if err := k.SetHealthiness(ctx, cl, metav1.ConditionFalse, meta); err != nil {
+		return err
+	}
 	return k.SetReadiness(ctx, cl, metav1.ConditionFalse, meta)
 }
 
@@ -87,7 +89,9 @@ func (k *Konfiguration) SetNotReadySnapshot(ctx context.Context, cl client.Clien
 func (k *Konfiguration) SetReady(ctx context.Context, cl client.Client, snapshot *Snapshot, meta *StatusMeta) error {
 	k.Status.Snapshot = snapshot
 	k.Status.LastAppliedRevision = meta.Revision
-	// k.SetHealthiness(metav1.ConditionTrue, reason, reason)
+	if err := k.SetHealthiness(ctx, cl, metav1.ConditionTrue, meta); err != nil {
+		return err
+	}
 	return k.SetReadiness(ctx, cl, metav1.ConditionTrue, meta)
 }
 

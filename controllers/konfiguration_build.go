@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
-	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
 type ObjectSorter []*unstructured.Unstructured
@@ -37,11 +37,26 @@ type ObjectSorter []*unstructured.Unstructured
 func (o ObjectSorter) Len() int      { return len(o) }
 func (o ObjectSorter) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
 func (o ObjectSorter) Less(i, j int) bool {
+	// Ensure namespaces and crds are first
+	for _, t := range []string{"Namespace", "CustomResourceDefinition"} {
+		if o[i].GetKind() == t {
+			if o[j].GetKind() == t {
+				return o[i].GetName() < o[j].GetName()
+			}
+			return true
+		}
+		if o[j].GetKind() == t {
+			if o[i].GetKind() == t {
+				return o[i].GetName() < o[j].GetName()
+			}
+			return false
+		}
+	}
 	return fmt.Sprintf("%s/%s", o[i].GetNamespace(), o[i].GetName()) <
 		fmt.Sprintf("%s/%s", o[j].GetNamespace(), o[j].GetName())
 }
 
-func (k *KonfigurationReconciler) build(ctx context.Context, konfig *appsv1.Konfiguration, path string) ([]byte, string, error) {
+func (k *KonfigurationReconciler) build(ctx context.Context, konfig *konfigurationv1.Konfiguration, path string) ([]byte, string, error) {
 	showOutput, err := runKubecfgShow(ctx, konfig, path)
 	if err != nil {
 		return nil, "", err

@@ -34,15 +34,15 @@ import (
 	"sigs.k8s.io/cli-utils/pkg/kstatus/status"
 	"sigs.k8s.io/cli-utils/pkg/object"
 
-	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
 type KonfigurationHealthCheck struct {
-	konfiguration *appsv1.Konfiguration
+	konfiguration *konfigurationv1.Konfiguration
 	statusPoller  *polling.StatusPoller
 }
 
-func NewHealthCheck(konfiguration *appsv1.Konfiguration, statusPoller *polling.StatusPoller) *KonfigurationHealthCheck {
+func NewHealthCheck(konfiguration *konfigurationv1.Konfiguration, statusPoller *polling.StatusPoller) *KonfigurationHealthCheck {
 	return &KonfigurationHealthCheck{
 		konfiguration: konfiguration,
 		statusPoller:  statusPoller,

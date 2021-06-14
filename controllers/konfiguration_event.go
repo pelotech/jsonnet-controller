@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/tools/reference"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
 type EventData struct {
@@ -34,7 +34,7 @@ type EventData struct {
 	Metadata                    map[string]string
 }
 
-func (r *KonfigurationReconciler) event(ctx context.Context, konfig *appsv1.Konfiguration, data *EventData) {
+func (r *KonfigurationReconciler) event(ctx context.Context, konfig *konfigurationv1.Konfiguration, data *EventData) {
 	log := log.FromContext(ctx)
 
 	log.Info("Sending event", "Event", fmt.Sprintf("%+v", data))

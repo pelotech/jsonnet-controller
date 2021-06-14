@@ -36,14 +36,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
 type KonfigurationImpersonation struct {
 	client.Client
 
 	workdir       string
-	konfiguration *appsv1.Konfiguration
+	konfiguration *konfigurationv1.Konfiguration
 	statusPoller  *polling.StatusPoller
 
 	// cached assets
@@ -52,7 +52,7 @@ type KonfigurationImpersonation struct {
 }
 
 func NewKonfigurationImpersonation(
-	konfiguration *appsv1.Konfiguration,
+	konfiguration *konfigurationv1.Konfiguration,
 	kubeClient client.Client,
 	statusPoller *polling.StatusPoller,
 	workdir string) *KonfigurationImpersonation {

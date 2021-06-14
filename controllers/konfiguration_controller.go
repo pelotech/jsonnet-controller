@@ -47,7 +47,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-retryablehttp"
 
-	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	"github.com/pelotech/kubecfg-operator/pkg/resources"
 )
 
 // KonfigurationReconciler reconciles a Konfiguration object
@@ -81,27 +82,27 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 	r.dependencyRequeueDuration = opts.DependencyRequeueInterval
 
 	// Index the Kustomizations by the GitRepository references they (may) point at.
-	if err := mgr.GetCache().IndexField(context.TODO(), &appsv1.Konfiguration{}, appsv1.GitRepositoryIndexKey,
+	if err := mgr.GetCache().IndexField(context.TODO(), &konfigurationv1.Konfiguration{}, konfigurationv1.GitRepositoryIndexKey,
 		r.indexBy(sourcev1.GitRepositoryKind)); err != nil {
 		return fmt.Errorf("failed setting index fields: %w", err)
 	}
 
 	// Index the Kustomizations by the Bucket references they (may) point at.
-	if err := mgr.GetCache().IndexField(context.TODO(), &appsv1.Konfiguration{}, appsv1.BucketIndexKey,
+	if err := mgr.GetCache().IndexField(context.TODO(), &konfigurationv1.Konfiguration{}, konfigurationv1.BucketIndexKey,
 		r.indexBy(sourcev1.BucketKind)); err != nil {
 		return fmt.Errorf("failed setting index fields: %w", err)
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appsv1.Konfiguration{}, builder.WithPredicates(
+		For(&konfigurationv1.Konfiguration{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
 		)).Watches(
 		&source.Kind{Type: &sourcev1.GitRepository{}},
-		handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.GitRepositoryIndexKey)),
+		handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(konfigurationv1.GitRepositoryIndexKey)),
 		builder.WithPredicates(SourceRevisionChangePredicate{}),
 	).Watches(
 		&source.Kind{Type: &sourcev1.Bucket{}},
-		handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(appsv1.BucketIndexKey)),
+		handler.EnqueueRequestsFromMapFunc(r.requestsForRevisionChangeOf(konfigurationv1.BucketIndexKey)),
 		builder.WithPredicates(SourceRevisionChangePredicate{}),
 	).WithOptions(
 		controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles},
@@ -130,7 +131,7 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	reqLogger.Info("Reconciling konfiguration")
 
 	// Look up the konfiguration that triggered this request
-	konfig := &appsv1.Konfiguration{}
+	konfig := &konfigurationv1.Konfiguration{}
 	if err := r.Client.Get(ctx, req.NamespacedName, konfig); err != nil {
 		// Check if object was deleted
 		if client.IgnoreNotFound(err) == nil {
@@ -140,9 +141,9 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Add our finalizer if it does not exist
-	if !controllerutil.ContainsFinalizer(konfig, appsv1.KonfigurationFinalizer) {
+	if !controllerutil.ContainsFinalizer(konfig, konfigurationv1.KonfigurationFinalizer) {
 		reqLogger.Info("Registering finalizer to Konfiguration")
-		controllerutil.AddFinalizer(konfig, appsv1.KonfigurationFinalizer)
+		controllerutil.AddFinalizer(konfig, konfigurationv1.KonfigurationFinalizer)
 		if err := r.Update(ctx, konfig); err != nil {
 			reqLogger.Error(err, "failed to register finalizer")
 			return ctrl.Result{}, err
@@ -178,7 +179,7 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Check if there are any dependencies and that they are all ready
 	if err := r.checkDependencies(ctx, konfig); err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
 			revision, meta.DependencyNotReadyReason, err.Error(),
 		)); statusErr != nil {
 			reqLogger.Error(err, "failed to update status for dependency not ready")
@@ -196,7 +197,7 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Build the jsonnet and compute a checksum
 	manifests, checksum, err := r.build(ctx, konfig, path)
 	if err != nil {
-		meta := appsv1.NewStatusMeta(revision, appsv1.BuildFailedReason, err.Error())
+		meta := konfigurationv1.NewStatusMeta(revision, konfigurationv1.BuildFailedReason, err.Error())
 		if statusErr := konfig.SetNotReady(ctx, r.Client, meta); statusErr != nil {
 			reqLogger.Error(statusErr, "unable to update status after build error")
 		}
@@ -207,9 +208,9 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Create a snapshot from the build output
-	snapshot, err := appsv1.NewSnapshot(manifests, checksum)
+	snapshot, err := konfigurationv1.NewSnapshot(manifests, checksum)
 	if err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, appsv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
 		reqLogger.Error(err, "Error creating snapshot of manifests")
@@ -234,7 +235,7 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Set the konfiguration as ready
 	msg := fmt.Sprintf("Applied revision: %s", revision)
-	if err := konfig.SetReady(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+	if err := konfig.SetReady(ctx, r.Client, snapshot, konfigurationv1.NewStatusMeta(
 		revision, meta.ReconciliationSucceededReason, msg),
 	); err != nil {
 		return ctrl.Result{Requeue: true}, err
@@ -254,12 +255,12 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}, nil
 }
 
-func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.Konfiguration, snapshot *appsv1.Snapshot, revision string, manifest []byte) error {
+func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigurationv1.Konfiguration, snapshot *konfigurationv1.Snapshot, revision string, manifest []byte) error {
 	reqLogger := log.FromContext(ctx)
 
-	dirPath, path, err := r.writeManifest(ctx, konfig, manifest)
+	dirPath, _, err := r.writeManifest(ctx, konfig, manifest)
 	if err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
 			revision, sourcev1.StorageOperationFailedReason, err.Error()),
 		); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
@@ -270,9 +271,9 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.
 
 	// Create any necessary kube-clients for impersonation
 	impersonation := NewKonfigurationImpersonation(konfig, r.Client, r.StatusPoller, dirPath)
-	_, statusPoller, err := impersonation.GetClient(ctx)
+	kubeClient, statusPoller, err := impersonation.GetClient(ctx)
 	if err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
 			revision, meta.ReconciliationFailedReason, err.Error()),
 		); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
@@ -280,56 +281,60 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.
 		return fmt.Errorf("failed to build kube client: %w", err)
 	}
 
-	// Run a diff first to determine if any actions are necessary
-	updateRequired, err := runKubecfgDiff(ctx, konfig, impersonation, path)
-	if err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
-			revision, appsv1.ValidationFailedReason, err.Error()),
-		); statusErr != nil {
-			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-		}
-		return err
-	}
+	// Create a resource manager for the konfiguration
+	manager := resources.NewResourceManager(kubeClient, konfig)
 
-	// If no update required and the last status update was marked ready, check on the next interval.
-	if !updateRequired {
-		// Check healthiness
-		if err := r.checkHealth(ctx, statusPoller, konfig, revision); err != nil {
-			if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
-				revision, appsv1.HealthCheckFailedReason, err.Error()),
-			); statusErr != nil {
-				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-			}
-			return err
-		}
-		return nil
-	}
-
-	// Run a dry-run
-	// TODO: This should probably be skipped entirely when validation is disabled.
-	if err := runKubecfgUpdate(ctx, konfig, impersonation, path, true); err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
-			revision, appsv1.ValidationFailedReason, err.Error()),
-		); statusErr != nil {
-			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-		}
-		return err
-	}
-
-	// Run an update
-	if err := runKubecfgUpdate(ctx, konfig, impersonation, path, false); err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
+	// Reconcile resources from the output
+	if changeset, err := manager.Reconcile(ctx, snapshot, manifest); err != nil {
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
 			revision, meta.ReconciliationFailedReason, err.Error()),
 		); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
-		return err
+		r.event(ctx, konfig, &EventData{
+			Revision: revision,
+			Severity: events.EventSeverityError,
+			Message:  changeset,
+			Metadata: map[string]string{},
+		})
+		return fmt.Errorf("failed to reconcile manifests: %w", err)
+	} else {
+		r.event(ctx, konfig, &EventData{
+			Revision: revision,
+			Severity: events.EventSeverityInfo,
+			Message:  changeset,
+			Metadata: map[string]string{},
+		})
+	}
+
+	// Prune any orphaned resources
+	if changeset, ok := manager.Prune(ctx, konfig.Status.Snapshot, snapshot); !ok {
+		msg := fmt.Sprintf("failed to garbage-collect orphaned resources: %s", changeset)
+		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
+			revision, konfigurationv1.PruneFailedReason, msg),
+		); statusErr != nil {
+			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+		}
+		r.event(ctx, konfig, &EventData{
+			Revision: revision,
+			Severity: events.EventSeverityError,
+			Message:  changeset,
+			Metadata: map[string]string{},
+		})
+		return fmt.Errorf(msg)
+	} else if changeset != "" {
+		r.event(ctx, konfig, &EventData{
+			Revision: revision,
+			Severity: events.EventSeverityInfo,
+			Message:  changeset,
+			Metadata: map[string]string{},
+		})
 	}
 
 	// Check healthiness
 	if err := r.checkHealth(ctx, statusPoller, konfig, revision); err != nil {
-		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, appsv1.NewStatusMeta(
-			revision, appsv1.HealthCheckFailedReason, err.Error()),
+		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, konfigurationv1.NewStatusMeta(
+			revision, konfigurationv1.HealthCheckFailedReason, err.Error()),
 		); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 		}
@@ -339,37 +344,13 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *appsv1.
 	return nil
 }
 
-func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *appsv1.Konfiguration) (ctrl.Result, error) {
+func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *konfigurationv1.Konfiguration) (ctrl.Result, error) {
 	reqLogger := log.FromContext(ctx)
 
 	// If the konfig had prunening enabled and wasn't suspended for deletion
 	// Run a kubecfg delete.
 	if konfig.GCEnabled() && !konfig.IsSuspended() {
-		_, path, clean, err := r.prepareSource(ctx, konfig)
-		if err != nil {
-			r.event(ctx, konfig, &EventData{
-				Revision: konfig.Status.LastAppliedRevision,
-				Severity: events.EventSeverityError,
-				Message:  err.Error(),
-			})
-			return ctrl.Result{Requeue: true}, err
-		}
-		defer clean()
-
-		// Build the jsonnet - this is a hacky solution for not doing GC like kustomize-controller
-		// does for now
-		manifest, _, err := r.build(ctx, konfig, path)
-		if err != nil {
-			r.event(ctx, konfig, &EventData{
-				Revision: konfig.Status.LastAppliedRevision,
-				Severity: events.EventSeverityError,
-				Message:  err.Error(),
-			})
-			reqLogger.Error(err, "Error building the jsonnet")
-			return ctrl.Result{Requeue: true}, err
-		}
-
-		dirPath, path, err := r.writeManifest(ctx, konfig, manifest)
+		dirPath, _, err := r.writeManifest(ctx, konfig, []byte{})
 		if err != nil {
 			r.event(ctx, konfig, &EventData{
 				Revision: konfig.Status.LastAppliedRevision,
@@ -377,30 +358,50 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *a
 				Message:  err.Error(),
 			})
 			reqLogger.Info("Could not write the generated manifest to disk")
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 
 		impersonation := NewKonfigurationImpersonation(konfig, r.Client, r.StatusPoller, dirPath)
-
-		if err := runKubecfgDelete(ctx, konfig, impersonation, path); err != nil {
+		kubeClient, _, err := impersonation.GetClient(ctx)
+		if err != nil {
 			r.event(ctx, konfig, &EventData{
 				Revision: konfig.Status.LastAppliedRevision,
 				Severity: events.EventSeverityError,
 				Message:  err.Error(),
 			})
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, fmt.Errorf("failed to build kube client: %w", err)
+		}
+
+		// Create a resource manager for the konfiguration
+		manager := resources.NewResourceManager(kubeClient, konfig)
+
+		if changeset, ok := manager.Prune(ctx, konfig.Status.Snapshot, nil); !ok {
+			r.event(ctx, konfig, &EventData{
+				Revision: "",
+				Severity: events.EventSeverityError,
+				Message:  changeset,
+				Metadata: map[string]string{},
+			})
+			return ctrl.Result{}, fmt.Errorf("failed to garbage-collect orphaned resources: %s", changeset)
+		} else if changeset != "" {
+			r.event(ctx, konfig, &EventData{
+				Revision: "",
+				Severity: events.EventSeverityInfo,
+				Message:  changeset,
+				Metadata: map[string]string{},
+			})
 		}
 	}
 
 	// Remove our finalizer from the list and update it
-	controllerutil.RemoveFinalizer(konfig, appsv1.KonfigurationFinalizer)
+	controllerutil.RemoveFinalizer(konfig, konfigurationv1.KonfigurationFinalizer)
 	if err := r.Update(ctx, konfig); err != nil {
 		r.event(ctx, konfig, &EventData{
 			Revision: konfig.Status.LastAppliedRevision,
 			Severity: events.EventSeverityError,
 			Message:  err.Error(),
 		})
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	// Stop reconciliation as the object is being deleted
@@ -408,7 +409,7 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *a
 }
 
 // writeManifest prepares a temporary directory and writes the built manifest to disks
-func (r *KonfigurationReconciler) writeManifest(ctx context.Context, konfig *appsv1.Konfiguration, manifest []byte) (dirPath, manifestPath string, err error) {
+func (r *KonfigurationReconciler) writeManifest(ctx context.Context, konfig *konfigurationv1.Konfiguration, manifest []byte) (dirPath, manifestPath string, err error) {
 	// Allocate a new temp directory for the generated manifests and/or kubeconfig
 	dirPath, err = ioutil.TempDir("", konfig.GetName())
 	if err != nil {
@@ -426,7 +427,7 @@ func (r *KonfigurationReconciler) writeManifest(ctx context.Context, konfig *app
 }
 
 // checkHealth checks the healthiness of the konfiguration after an apply
-func (r *KonfigurationReconciler) checkHealth(ctx context.Context, statusPoller *polling.StatusPoller, konfig *appsv1.Konfiguration, revision string) error {
+func (r *KonfigurationReconciler) checkHealth(ctx context.Context, statusPoller *polling.StatusPoller, konfig *konfigurationv1.Konfiguration, revision string) error {
 	if len(konfig.GetHealthChecks()) == 0 {
 		return nil
 	}
@@ -437,7 +438,7 @@ func (r *KonfigurationReconciler) checkHealth(ctx context.Context, statusPoller 
 		return err
 	}
 
-	healthiness := apimeta.FindStatusCondition(konfig.Status.Conditions, appsv1.HealthyCondition)
+	healthiness := apimeta.FindStatusCondition(konfig.Status.Conditions, konfigurationv1.HealthyCondition)
 	healthy := healthiness != nil && healthiness.Status == metav1.ConditionTrue
 
 	if !healthy || (konfig.Status.LastAppliedRevision != revision) {

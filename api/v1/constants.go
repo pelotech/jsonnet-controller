@@ -22,5 +22,31 @@ const (
 	BucketIndexKey string = ".metadata.bucket"
 )
 
+const (
+	// The annotation added to objects containing the checksum of their last
+	// applied configuration. Used to check if a patch is required.
+	LastAppliedConfigAnnotation string = "kubecfg.io/last-applied-configuration"
+
+	// KonfigurationNameLabel is the label added to objects to denote the Konfiguration
+	// they belong to. Used for garbage collection.
+	KonfigurationNameLabel string = "kubecfg.io/konfiguration-name"
+
+	// KonfigurationNamespaceLabel is the label added to objects to denote the Konfiguration's
+	// namespace they belong to. Used for garbage collection.
+	KonfigurationNamespaceLabel string = "kubecfg.io/konfiguration-namespace"
+
+	// KonfigurationChecksumLabel is the label added to objects containing the full checksum of
+	// the built konfiguration being applied. Used for garbage collection.
+	KonfigurationChecksumLabel string = "kubecfg.io/konfiguration-checksum"
+
+	// ResourceSkipPruning is the label or annotation that a user can apply to resources to have
+	// them skipped during pruning.
+	ResourceSkipPruning string = "kubecfg.io/prune"
+
+	// PruningDisabledValue is the value set to ResourceSkipPruningLabel to exclude an object from
+	// pruning.
+	PruningDisabledValue string = "disabled"
+)
+
 // KongifurationFinalizer is the finalizer placed on Konfiguration resources
-const KonfigurationFinalizer string = "finalizers.kubecfg.io"
+const KonfigurationFinalizer string = "finalizers.apps.kubecfg.io"

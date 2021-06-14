@@ -1,4 +1,4 @@
-apiVersion: apps.kubecfg.io/v1
+apiVersion: kubecfg.io/v1
 kind: Konfiguration
 metadata:
   name: whoami

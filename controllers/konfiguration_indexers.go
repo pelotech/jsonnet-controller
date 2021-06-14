@@ -20,14 +20,14 @@ import (
 	"context"
 	"fmt"
 
-	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/fluxcd/pkg/runtime/dependency"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
+
+	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
 func (r *KonfigurationReconciler) requestsForRevisionChangeOf(indexKey string) func(obj client.Object) []reconcile.Request {
@@ -44,7 +44,7 @@ func (r *KonfigurationReconciler) requestsForRevisionChangeOf(indexKey string) f
 		}
 
 		ctx := context.Background()
-		var list appsv1.KonfigurationList
+		var list konfigurationv1.KonfigurationList
 		if err := r.List(ctx, &list, client.MatchingFields{
 			indexKey: ObjectKey(obj).String(),
 		}); err != nil {
@@ -74,7 +74,7 @@ func (r *KonfigurationReconciler) requestsForRevisionChangeOf(indexKey string) f
 
 func (r *KonfigurationReconciler) indexBy(kind string) func(o client.Object) []string {
 	return func(o client.Object) []string {
-		k, ok := o.(*appsv1.Konfiguration)
+		k, ok := o.(*konfigurationv1.Konfiguration)
 		if !ok {
 			panic(fmt.Sprintf("Expected a Konfiguration, got %T", o))
 		}

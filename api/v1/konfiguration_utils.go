@@ -114,8 +114,8 @@ func (k *Konfiguration) GetKubecfgArgs() []string { return k.Spec.KubecfgArgs }
 // manifests.
 func (k *Konfiguration) GCEnabled() bool { return k.Spec.Prune }
 
-// ValidateEnabled returns true if server-side validation is enabled.
-func (k *Konfiguration) ValidateEnabled() bool { return k.Spec.Validate }
+// ShouldValidate returns true if server-side validation is enabled.
+func (k *Konfiguration) ShouldValidate() bool { return k.Spec.Validate }
 
 // IsSuspended returns whether the controller should not apply any manifests
 // at the moment.

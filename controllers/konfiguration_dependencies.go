@@ -26,10 +26,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
 )
 
-func (r *KonfigurationReconciler) checkDependencies(ctx context.Context, konfig *appsv1.Konfiguration) error {
+func (r *KonfigurationReconciler) checkDependencies(ctx context.Context, konfig *konfigurationv1.Konfiguration) error {
 	log := log.FromContext(ctx)
 
 	_, deps := konfig.GetDependsOn()
@@ -45,7 +45,7 @@ func (r *KonfigurationReconciler) checkDependencies(ctx context.Context, konfig 
 		dName := types.NamespacedName(dep)
 
 		log.Info(fmt.Sprintf("Checking dependency '%s'", dName.String()))
-		var k appsv1.Konfiguration
+		var k konfigurationv1.Konfiguration
 		err := r.Get(ctx, dName, &k)
 		if err != nil {
 			return fmt.Errorf("unable to get '%s' dependency: %w", dName, err)

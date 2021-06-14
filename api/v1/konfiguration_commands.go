@@ -16,11 +16,6 @@ limitations under the License.
 
 package v1
 
-import "fmt"
-
-// TODO: Since manifests are passed as raw yaml after "show" a lot of these can be
-// simplifid.
-
 func (k *Konfiguration) newArgs(cmd string) []string {
 	args := []string{cmd, "--cache-dir", "/cache", "--namespace", k.GetNamespace()}
 
@@ -40,56 +35,9 @@ func (k *Konfiguration) varsArgs(cmd string) []string {
 	return args
 }
 
-// ToUpdateArgs converts this Konfiguration schema into kubecfg update
-// arguments.
-func (k *Konfiguration) ToUpdateArgs(path string, dryRun bool) []string {
-	args := k.varsArgs("update")
-
-	// Check if we are adding garbage collection flags.
-	if k.GCEnabled() {
-		gcTag := fmt.Sprintf("%s_%s", k.GetNamespace(), k.GetName())
-		args = append(args, []string{"--gc-tag", gcTag}...)
-	}
-
-	// Check if disabling validation.
-	if !k.ValidateEnabled() {
-		args = append(args, "--validate=false")
-	}
-
-	if dryRun {
-		args = append(args, "--dry-run")
-	}
-
-	// Finally add the paths
-	args = append(args, path)
-
-	return args
-}
-
 // ToShowArgs convert this Konfiguration to show arguments.
 func (k *Konfiguration) ToShowArgs(path string) []string {
 	args := k.varsArgs("show")
-	args = append(args, path)
-	return args
-}
-
-// ToDeleteArgs converts this Konfiguration into kubecfg delete arguments.
-func (k *Konfiguration) ToDeleteArgs(path string) []string {
-	args := k.varsArgs("delete")
-	args = append(args, path)
-	return args
-}
-
-// ToDiffArgs converts this Konfiguration schema into kubecfg diff arguments.
-func (k *Konfiguration) ToDiffArgs(path string) []string {
-	args := k.newArgs("diff")
-	// Check if defining external or top-level arguments.
-	if vars := k.GetVariables(); vars != nil {
-		args = vars.AppendToArgs(args)
-	}
-	// Append the diff strategy
-	args = append(args, []string{"--diff-strategy", k.GetDiffStrategy()}...)
-	// Finally add the paths
 	args = append(args, path)
 	return args
 }

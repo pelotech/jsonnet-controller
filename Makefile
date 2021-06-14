@@ -168,6 +168,10 @@ docker-load: docker-build ## Load the manager image into the k3d cluster.
 deploy: ## Deploy the manager and CRDs into the k3d cluster.
 	$(KUBECFG) --context=$(CONTEXT) update config/jsonnet/kubecfg-operator.jsonnet
 
+restart:
+	$(KUBECTL) delete --context=$(CONTEXT) \
+		-n flux-system -l app=kubecfg-controller pod 
+
 samples: ## Deploy the sample source-controller manifests into the cluster.
 	$(KUBECTL) apply --context=$(CONTEXT) \
 		-f config/samples/kubecfg-operator-git-repository.yaml \

@@ -187,5 +187,6 @@ These are features and other tasks that need to be completed before an initial r
 
 - [ ] Unit and E2E Tests
 - [ ] Metrics
-- [ ] Validation Options
-- [ ] Better error messages for status/events
+- [ ] Better Handling of Cluster Scoped Resources
+- [ ] Better Validation Options
+- [ ] Better Patch Strategies

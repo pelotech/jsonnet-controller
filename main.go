@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	appsv1 "github.com/pelotech/kubecfg-operator/api/v1"
+	konfigurationv1 "github.com/pelotech/kubecfg-operator/api/v1"
 	"github.com/pelotech/kubecfg-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -53,7 +53,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(appsv1.AddToScheme(scheme))
+	utilruntime.Must(konfigurationv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 
 	_ = sourcev1.AddToScheme(scheme)
