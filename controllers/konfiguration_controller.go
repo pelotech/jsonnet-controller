@@ -225,7 +225,7 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}, nil
 	}
 
-	updated := konfig.Status.Snapshot != nil && snapshot.Checksum != konfig.Status.Snapshot.Checksum
+	updated := konfig.Status.Snapshot == nil || snapshot.Checksum != konfig.Status.Snapshot.Checksum
 
 	// Set the konfiguration as ready
 	msg := fmt.Sprintf("Applied revision: %s", revision)
