@@ -56,7 +56,7 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
             metadata+: { labels: this.labels },
             rules: [
                 {
-                    apiGroups: ['apps.kubecfg.io'],
+                    apiGroups: ['jsonnet.io'],
                     resources: ['konfigurations', 'konfigurations/finalizers', 'konfigurations/status'],
                     verbs: all_perms,
                 },
