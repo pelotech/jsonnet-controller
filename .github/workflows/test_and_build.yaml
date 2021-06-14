@@ -43,8 +43,8 @@ jobs:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-          /home/runner/work/kubecfg-operator/kubecfg-operator/testbin
-          /home/runner/work/kubecfg-operator/kubecfg-operator/bin
+          /home/runner/work/jsonnet-controller/jsonnet-controller/testbin
+          /home/runner/work/jsonnet-controller/jsonnet-controller/bin
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
@@ -88,7 +88,7 @@ jobs:
       with:
         context: .
         push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-        tags: ghcr.io/pelotech/kubecfg-controller:${{ steps.version.outputs.tag }}
+        tags: ghcr.io/pelotech/jsonnet-controller:${{ steps.version.outputs.tag }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new
 
@@ -104,9 +104,9 @@ jobs:
 
     # Update documentation
     - name: Force pkg.go.dev to refresh main branch
-      run: curl "https://proxy.golang.org/github.com/pelotech/kubecfg-operator/@v/${GITHUB_REF##*/}.info"
+      run: curl "https://proxy.golang.org/github.com/pelotech/jsonnet-controller/@v/${GITHUB_REF##*/}.info"
       if: ${{ steps.version.outputs.tag == 'latest' && github.event_name != 'pull_request' }}
 
     - name: Force pkg.go.dev to refresh latest tag
-      run: curl https://proxy.golang.org/github.com/pelotech/kubecfg-operator/@v/${{ steps.version.outputs.tag }}.info
+      run: curl https://proxy.golang.org/github.com/pelotech/jsonnet-controller/@v/${{ steps.version.outputs.tag }}.info
       if: ${{ steps.version.outputs.tag != 'latest' && github.event_name != 'pull_request' }}
