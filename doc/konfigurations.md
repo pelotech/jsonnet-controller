@@ -115,6 +115,18 @@ Konfiguration is the Schema for the konfigurations API
 <td><p>Path to the jsonnet, json, or yaml that should be applied to the cluster. Defaults to ‘None’, which translates to the root path of the SourceRef. When declared as a file path it is assumed to be from the root path of the SourceRef. You may also define a HTTP(S) link to fetch files from a remote location.</p></td>
 </tr>
 <tr class="even">
+<td><code>jsonnerPaths</code><br />
+<em>[]string</em></td>
+<td><em>(Optional)</em>
+<p>Additional search paths to add to the jsonnet importer. These are relative to the root of the sourceRef.</p></td>
+</tr>
+<tr class="odd">
+<td><code>jsonnetURLs</code><br />
+<em>[]string</em></td>
+<td><em>(Optional)</em>
+<p>Additional HTTP(S) URLs to add to the jsonnet importer.</p></td>
+</tr>
+<tr class="even">
 <td><code>variables</code><br />
 <em><a href="#kubecfg.io/v1.Variables">Variables</a></em></td>
 <td><em>(Optional)</em>
@@ -153,21 +165,15 @@ Konfiguration is the Schema for the konfigurations API
 <td><code>timeout</code><br />
 <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#duration-v1-meta">Kubernetes meta/v1.Duration</a></em></td>
 <td><em>(Optional)</em>
-<p>Timeout for diff, validation, apply, and (soon) health checking operations. Defaults to ‘Interval’ duration.</p></td>
+<p>Timeout for diff, validation, apply, and health checking operations. Defaults to ‘Interval’ duration.</p></td>
 </tr>
 <tr class="odd">
-<td><code>kubecfgArgs</code><br />
-<em>[]string</em></td>
-<td><em>(Optional)</em>
-<p>Additional global arguments to pass to kubecfg invocations.</p></td>
-</tr>
-<tr class="even">
 <td><code>validate</code><br />
 <em>bool</em></td>
 <td><em>(Optional)</em>
 <p>Validate input against the server schema, defaults to true. This will be updated to support different methods of validation.</p></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diffStrategy</code><br />
 <em>string</em></td>
 <td><em>(Optional)</em>
@@ -231,6 +237,18 @@ KonfigurationSpec defines the desired state of a Konfiguration
 <td><p>Path to the jsonnet, json, or yaml that should be applied to the cluster. Defaults to ‘None’, which translates to the root path of the SourceRef. When declared as a file path it is assumed to be from the root path of the SourceRef. You may also define a HTTP(S) link to fetch files from a remote location.</p></td>
 </tr>
 <tr class="even">
+<td><code>jsonnerPaths</code><br />
+<em>[]string</em></td>
+<td><em>(Optional)</em>
+<p>Additional search paths to add to the jsonnet importer. These are relative to the root of the sourceRef.</p></td>
+</tr>
+<tr class="odd">
+<td><code>jsonnetURLs</code><br />
+<em>[]string</em></td>
+<td><em>(Optional)</em>
+<p>Additional HTTP(S) URLs to add to the jsonnet importer.</p></td>
+</tr>
+<tr class="even">
 <td><code>variables</code><br />
 <em><a href="#kubecfg.io/v1.Variables">Variables</a></em></td>
 <td><em>(Optional)</em>
@@ -269,21 +287,15 @@ KonfigurationSpec defines the desired state of a Konfiguration
 <td><code>timeout</code><br />
 <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#duration-v1-meta">Kubernetes meta/v1.Duration</a></em></td>
 <td><em>(Optional)</em>
-<p>Timeout for diff, validation, apply, and (soon) health checking operations. Defaults to ‘Interval’ duration.</p></td>
+<p>Timeout for diff, validation, apply, and health checking operations. Defaults to ‘Interval’ duration.</p></td>
 </tr>
 <tr class="odd">
-<td><code>kubecfgArgs</code><br />
-<em>[]string</em></td>
-<td><em>(Optional)</em>
-<p>Additional global arguments to pass to kubecfg invocations.</p></td>
-</tr>
-<tr class="even">
 <td><code>validate</code><br />
 <em>bool</em></td>
 <td><em>(Optional)</em>
 <p>Validate input against the server schema, defaults to true. This will be updated to support different methods of validation.</p></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>diffStrategy</code><br />
 <em>string</em></td>
 <td><em>(Optional)</em>
@@ -513,4 +525,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `82ea363`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `4203865`.*
