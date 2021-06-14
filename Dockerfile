@@ -25,13 +25,6 @@ WORKDIR /workspace
 ARG ARCH=amd64
 ENV ARCH=${ARCH}
 
-# Retrieve the latest kubectl version
-RUN    curl -LO "https://dl.k8s.io/release/`curl -L -s https://dl.k8s.io/release/stable.txt`/bin/linux/${ARCH}/kubectl" \
-    && curl -LO "https://dl.k8s.io/`curl -L -s https://dl.k8s.io/release/stable.txt`/bin/linux/${ARCH}/kubectl.sha256" \
-    && echo "`cat kubectl.sha256` kubectl" | sha256sum --check \
-    && chmod +x kubectl \
-    && upx -9 kubectl
-
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -54,7 +47,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="-s -w" -a -o mana
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/manager .
-COPY --from=builder /workspace/kubectl .
 COPY --from=kubecfg-builder /workspace/kubecfg/kubecfg .
 USER 65532:65532
 
