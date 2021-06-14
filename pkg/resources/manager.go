@@ -303,7 +303,9 @@ func (m *manager) reconcileUnstructured(ctx context.Context, obj *unstructured.U
 }
 
 func (m *manager) patch(ctx context.Context, old, new *unstructured.Unstructured, id string) (string, error) {
-	mergo.MergeWithOverwrite(old, new)
+	if err := mergo.MergeWithOverwrite(old, new); err != nil {
+		return fmt.Sprintf("update failed for '%s' (merge): %s\n", id, err.Error()), err
+	}
 	if m.parent.ShouldValidate() {
 		if err := m.Update(ctx, old, client.DryRunAll); err != nil {
 			return fmt.Sprintf("update failed for '%s' (dry-run): %s\n", id, err.Error()), err
