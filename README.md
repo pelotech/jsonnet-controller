@@ -14,7 +14,7 @@ API Documentation is available [here](doc/konfigurations.md#Konfiguration).
 
 ### Installing
 
-You can use either `kubectl`, [`kustomize`](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/), [`kubecfg`](https://github.com/bitnami/kubecfg/releases) to install the controller and its CRDs.
+You can use either `kubectl`, [`kustomize`](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/), or [`kubecfg`](https://github.com/bitnami/kubecfg/releases) to install the controller and its CRDs.
 
 ```bash
 # Using kubectl - A bundle manifest is included in the repository that is
