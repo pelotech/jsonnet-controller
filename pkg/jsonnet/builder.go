@@ -19,6 +19,7 @@ package jsonnet
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"path/filepath"
@@ -194,7 +195,11 @@ func (b *builder) evaluateJsonnet(path string) (string, error) {
 	// Add any user-defined injections
 	expr += b.konfig.GetInjectSnippet()
 
-	return b.vm.EvaluateAnonymousSnippet("", expr)
+	output, err := b.vm.EvaluateAnonymousSnippet("", expr)
+	if err != nil {
+		return "", errors.New(strings.TrimSpace(err.Error()))
+	}
+	return output, nil
 }
 
 func (b *builder) checkNamespace(restMapper meta.RESTMapper, obj *unstructured.Unstructured) error {

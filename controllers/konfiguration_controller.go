@@ -67,6 +67,8 @@ type KonfigurationReconciler struct {
 	dependencyRequeueDuration time.Duration
 	jsonnetCache              string
 	dryRunTimeout             time.Duration
+
+	httpLog logr.Logger
 }
 
 type ReconcilerOptions struct {
@@ -89,6 +91,7 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 	r.dependencyRequeueDuration = opts.DependencyRequeueInterval
 	r.jsonnetCache = opts.JsonnetCacheDirectory
 	r.dryRunTimeout = opts.DryRunRequestTimeout
+	r.httpLog = log.WithName("webhook")
 
 	// Index the Kustomizations by the GitRepository references they (may) point at.
 	if err := mgr.GetCache().IndexField(context.TODO(), &konfigurationv1.Konfiguration{}, konfigurationv1.GitRepositoryIndexKey,
@@ -434,18 +437,16 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *k
 
 		if changeset, ok := manager.Prune(ctx, konfig.Status.Snapshot, nil); !ok {
 			r.event(ctx, konfig, &EventData{
-				Revision: "",
+				Revision: konfig.Status.LastAppliedRevision,
 				Severity: events.EventSeverityError,
 				Message:  changeset,
-				Metadata: map[string]string{},
 			})
 			return ctrl.Result{}, fmt.Errorf("failed to garbage-collect orphaned resources: %s", changeset)
 		} else if changeset != "" {
 			r.event(ctx, konfig, &EventData{
-				Revision: "",
+				Revision: konfig.Status.LastAppliedRevision,
 				Severity: events.EventSeverityInfo,
 				Message:  changeset,
-				Metadata: map[string]string{},
 			})
 		}
 	}

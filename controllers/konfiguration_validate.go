@@ -1,3 +1,19 @@
+/*
+Copyright 2021 Pelotech.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
@@ -28,15 +44,17 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 		var konfig konfigurationv1.Konfiguration
 		err := reader.Decode(&konfig)
 		if err != nil {
-			returnError(w, http.StatusBadRequest, err.Error())
+			r.returnError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+
+		r.httpLog.Info(fmt.Sprintf("Dry run request for %s/%s", konfig.GetNamespace(), konfig.GetName()))
 
 		var lastErr error
 		for {
 			select {
 			case <-ctx.Done():
-				returnError(w, http.StatusRequestTimeout, ctx.Err().Error()+", last error: "+lastErr.Error())
+				r.returnError(w, http.StatusRequestTimeout, ctx.Err().Error()+", last error: "+lastErr.Error())
 				return
 			default:
 				if lastErr != nil {
@@ -45,7 +63,7 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 				_, path, clean, err := r.prepareSource(ctx, &konfig)
 				if err != nil {
 					if client.IgnoreNotFound(err) == nil {
-						returnError(w, http.StatusInternalServerError, err.Error())
+						r.returnError(w, http.StatusInternalServerError, err.Error())
 						return
 					}
 					lastErr = err
@@ -54,7 +72,7 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 				defer clean()
 				dirPath, err := ioutil.TempDir("", konfig.GetName())
 				if err != nil {
-					returnError(w, http.StatusInternalServerError, err.Error())
+					r.returnError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
 				defer os.RemoveAll(dirPath)
@@ -62,30 +80,30 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 				impersonation := NewKonfigurationImpersonation(&konfig, r.Client, r.StatusPoller, filepath.Dir(path))
 				kubeClient, _, err := impersonation.GetClient(ctx)
 				if err != nil {
-					returnError(w, http.StatusInternalServerError, err.Error())
+					r.returnError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
 
 				builder, err := jsonnet.NewBuilder(&konfig, dirPath, r.jsonnetCache)
 				if err != nil {
-					returnError(w, http.StatusInternalServerError, err.Error())
+					r.returnError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
 
 				buildOutput, err := builder.Build(ctx, kubeClient.RESTMapper(), path)
 				if err != nil {
-					returnError(w, http.StatusInternalServerError, err.Error())
+					r.returnError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
 
 				stream, err := buildOutput.YAMLStream()
 				if err != nil {
-					returnError(w, http.StatusInternalServerError, err.Error())
+					r.returnError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
 
 				if _, err := w.Write(append(stream, []byte("\n")...)); err != nil {
-					fmt.Println("Error writing yaml stream to response:", err)
+					r.httpLog.Error(err, "Error writing yaml stream to response")
 				}
 
 				return
@@ -94,16 +112,17 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 	})
 }
 
-func returnError(w http.ResponseWriter, statusCode int, message string) {
+func (r *KonfigurationReconciler) returnError(w http.ResponseWriter, statusCode int, message string) {
+	r.httpLog.Info(fmt.Sprintf("Konfiguration dry-run error: %s", message))
 	out, err := json.MarshalIndent(map[string]string{
 		"error": message,
 	}, "", "  ")
 	if err != nil {
-		fmt.Println("Error marshalling json error:", err)
+		r.httpLog.Error(err, "Error marshalling json return")
 		return
 	}
 	w.WriteHeader(statusCode)
 	if _, err := w.Write(append(out, []byte("\n")...)); err != nil {
-		fmt.Println("Error writing json to response:", err)
+		r.httpLog.Error(err, "Error writing response")
 	}
 }
