@@ -311,14 +311,14 @@ func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, ob
 	}
 
 	// Check if checksum has changed - this is easier then doing a diff and will tell us
-	// if a change is happened since the last apply by the controller
+	// if a change has happened since the last apply by the controller
 	if foundChecksum != checksum {
 		log.Info(fmt.Sprintf("%s '%s' definition has a new checksum, updating", obj.GetKind(), nn.String()),
 			"OldChecksum", foundChecksum, "NewChecksum", checksum)
 		return m.patch(ctx, found, obj, id)
 	}
 
-	// Do a full diff
+	// Do a full diff - this will attempt to detect drift
 	if res, err := diff.Diff(obj, found); err != nil {
 		return fmt.Sprintf("computing diff failed for '%s': %s\n", id, err.Error()), err
 	} else if res.Modified {

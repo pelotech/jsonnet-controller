@@ -97,25 +97,15 @@ type KonfigurationSpec struct {
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
-	// Validate input against the server schema, defaults to true.
+	// Validate input against the server schema, defaults to true. At the moment
+	// this just implies a dry-run before patch/create operations.
 	// This will be updated to support different methods of validation.
 	// +kubebuilder:default:=true
 	// +optional
 	Validate bool `json:"validate,omitempty"`
 
-	// Strategy to use when performing diffs against the current state of the
-	// cluster. Options are `all`, `subset`, or `last-applied`. Defaults to
-	// `subset`.
-	// +kubebuilder:default:=subset
-	// +kubebuilder:validation:Enum=all;subset;last-applied
-	// +optional
-	DiffStrategy string `json:"diffStrategy,omitempty"`
-
 	// Force instructs the controller to recreate resources
 	// when patching fails due to an immutable field change.
-	// NOTE: kubecfg does not have this ability built-in. Will likely
-	// get solved when switching to applying manifets directly from build
-	// output.
 	// +kubebuilder:default:=false
 	// +optional
 	// Force bool `json:"force,omitempty"`

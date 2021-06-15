@@ -81,16 +81,6 @@ spec:
                   - name
                   type: object
                 type: array
-              diffStrategy:
-                default: subset
-                description: Strategy to use when performing diffs against the current
-                  state of the cluster. Options are `all`, `subset`, or `last-applied`.
-                  Defaults to `subset`.
-                enum:
-                - all
-                - subset
-                - last-applied
-                type: string
               healthChecks:
                 description: A list of resources to be included in the health assessment.
                 items:
@@ -207,7 +197,9 @@ spec:
               validate:
                 default: true
                 description: Validate input against the server schema, defaults to
-                  true. This will be updated to support different methods of validation.
+                  true. At the moment this just implies a dry-run before patch/create
+                  operations. This will be updated to support different methods of
+                  validation.
                 type: boolean
               variables:
                 description: Variables to use when invoking kubecfg to render manifests.

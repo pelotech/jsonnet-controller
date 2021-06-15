@@ -171,13 +171,7 @@ Konfiguration is the Schema for the konfigurations API
 <td><code>validate</code><br />
 <em>bool</em></td>
 <td><em>(Optional)</em>
-<p>Validate input against the server schema, defaults to true. This will be updated to support different methods of validation.</p></td>
-</tr>
-<tr class="even">
-<td><code>diffStrategy</code><br />
-<em>string</em></td>
-<td><em>(Optional)</em>
-<p>Strategy to use when performing diffs against the current state of the cluster. Options are <code>all</code>, <code>subset</code>, or <code>last-applied</code>. Defaults to <code>subset</code>.</p></td>
+<p>Validate input against the server schema, defaults to true. At the moment this just implies a dry-run before patch/create operations. This will be updated to support different methods of validation.</p></td>
 </tr>
 </tbody>
 </table></td>
@@ -293,13 +287,7 @@ KonfigurationSpec defines the desired state of a Konfiguration
 <td><code>validate</code><br />
 <em>bool</em></td>
 <td><em>(Optional)</em>
-<p>Validate input against the server schema, defaults to true. This will be updated to support different methods of validation.</p></td>
-</tr>
-<tr class="even">
-<td><code>diffStrategy</code><br />
-<em>string</em></td>
-<td><em>(Optional)</em>
-<p>Strategy to use when performing diffs against the current state of the cluster. Options are <code>all</code>, <code>subset</code>, or <code>last-applied</code>. Defaults to <code>subset</code>.</p></td>
+<p>Validate input against the server schema, defaults to true. At the moment this just implies a dry-run before patch/create operations. This will be updated to support different methods of validation.</p></td>
 </tr>
 </tbody>
 </table>
@@ -525,4 +513,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `a0ac236`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `edff2a6`.*
