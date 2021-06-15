@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -65,6 +66,7 @@ type KonfigurationReconciler struct {
 	httpClient                *retryablehttp.Client
 	dependencyRequeueDuration time.Duration
 	jsonnetCache              string
+	dryRunTimeout             time.Duration
 }
 
 type ReconcilerOptions struct {
@@ -72,6 +74,7 @@ type ReconcilerOptions struct {
 	HTTPRetryMax              int
 	DependencyRequeueInterval time.Duration
 	JsonnetCacheDirectory     string
+	DryRunRequestTimeout      time.Duration
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -85,6 +88,7 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 	r.httpClient = httpClient
 	r.dependencyRequeueDuration = opts.DependencyRequeueInterval
 	r.jsonnetCache = opts.JsonnetCacheDirectory
+	r.dryRunTimeout = opts.DryRunRequestTimeout
 
 	// Index the Kustomizations by the GitRepository references they (may) point at.
 	if err := mgr.GetCache().IndexField(context.TODO(), &konfigurationv1.Konfiguration{}, konfigurationv1.GitRepositoryIndexKey,
@@ -199,18 +203,6 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{RequeueAfter: r.dependencyRequeueDuration}, nil
 	}
 
-	// manifests, checksum, err := r.build(ctx, konfig, path)
-	// if err != nil {
-	// 	meta := konfigurationv1.NewStatusMeta(revision, konfigurationv1.BuildFailedReason, err.Error())
-	// 	if statusErr := konfig.SetNotReady(ctx, r.Client, meta); statusErr != nil {
-	// 		reqLogger.Error(statusErr, "unable to update status after build error")
-	// 	}
-	// 	reqLogger.Error(err, "Error building the jsonnet")
-	// 	return ctrl.Result{
-	// 		RequeueAfter: konfig.GetRetryInterval(),
-	// 	}, nil
-	// }
-
 	// Do reconciliation
 	snapshot, err := r.reconcile(ctx, konfig, revision, path)
 	if err != nil {
@@ -260,6 +252,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 	if err != nil {
 		return nil, err
 	}
+	defer os.RemoveAll(dirPath)
 
 	// Create any necessary kube-clients for impersonation
 	impersonation := NewKonfigurationImpersonation(konfig, r.Client, r.StatusPoller, dirPath)
@@ -413,6 +406,7 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *k
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+		defer os.RemoveAll(dirPath)
 
 		if err != nil {
 			r.event(ctx, konfig, &EventData{

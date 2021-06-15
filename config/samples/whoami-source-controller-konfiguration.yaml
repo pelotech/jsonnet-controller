@@ -4,13 +4,17 @@ metadata:
   name: whoami
 spec:
   interval: 30s
-  path: config/jsonnet/whoami-tla.jsonnet
+  path: config/jsonnet/whoami.jsonnet
   prune: true
   variables:
-    tlaStr:
+    extStr:
       name: 'whoami'
-    tlaCode:
+    extCode:
       port: '8080'
+  # inject: |
+  #   {
+  #     deployment+: { spec+: { replicas: 2 } }
+  #   }
   sourceRef:
     kind: GitRepository
     name: jsonnet-samples

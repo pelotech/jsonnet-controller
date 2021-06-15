@@ -108,6 +108,14 @@ func (v *Variables) InjectInto(vm *jsonnet.VM) {
 	}
 }
 
+// GetInjectSnippet returns any configured jsonnet snippet to add to the end of the execution.
+func (k *Konfiguration) GetInjectSnippet() string {
+	if k.Spec.Inject != "" {
+		return "\n" + k.Spec.Inject
+	}
+	return ""
+}
+
 // GCEnabled returns whether garbage collection should be conducted on kubecfg
 // manifests.
 func (k *Konfiguration) GCEnabled() bool { return k.Spec.Prune }

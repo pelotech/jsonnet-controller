@@ -40,6 +40,7 @@ import (
 
 	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
 	"github.com/pelotech/jsonnet-controller/controllers"
+	"github.com/pelotech/jsonnet-controller/pkg/gencert"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -61,6 +62,8 @@ func init() {
 
 func main() {
 	var (
+		tlsCertDir           string
+		webPort              int
 		eventsAddr           string
 		metricsAddr          string
 		enableLeaderElection bool
@@ -68,25 +71,43 @@ func main() {
 		watchAllNamespaces   bool
 		reconcileOpts        controllers.ReconcilerOptions
 	)
+
+	flag.IntVar(&webPort, "web-bind-port", 9443, "The port to bind the web server to.")
+	flag.StringVar(&tlsCertDir, "tls-cert-dir", "", "The path to certificates and keys to use for the webserver. A self-signed certificate will be generated if not provided.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.IntVar(&reconcileOpts.HTTPRetryMax, "http-retry-max", 5, "Maximum number of times to retry fetching a source artifact")
-	flag.IntVar(&reconcileOpts.MaxConcurrentReconciles, "max-concurrent-reconciles", 3, "Number of reconcilations to allow to run at a time")
-	flag.DurationVar(&reconcileOpts.DependencyRequeueInterval, "dependency-requeue-interval", 30*time.Second, "The interval at which failing dependencies are reevaluated.")
 	flag.StringVar(&eventsAddr, "events-addr", "", "The address for an external events receiver.")
 	flag.BoolVar(&watchAllNamespaces, "watch-all-namespaces", true,
 		"Watch for Konfigurations in all namespaces, if set to false it will only watch the runtime namespace.")
+
+	// Reconcile options
+	flag.IntVar(&reconcileOpts.HTTPRetryMax, "http-retry-max", 5, "Maximum number of times to retry fetching a source artifact")
+	flag.IntVar(&reconcileOpts.MaxConcurrentReconciles, "max-concurrent-reconciles", 3, "Number of reconcilations to allow to run at a time")
+	flag.DurationVar(&reconcileOpts.DependencyRequeueInterval, "dependency-requeue-interval", 30*time.Second, "The interval at which failing dependencies are reevaluated.")
 	flag.StringVar(&reconcileOpts.JsonnetCacheDirectory, "jsonnet-cache", "/cache", "The directory to cache jsonnet assets")
+	flag.DurationVar(&reconcileOpts.DryRunRequestTimeout, "dry-run-timeout", 10*time.Second, "The timeout for dry-run requests")
+	// Zap options
 	opts := zap.Options{
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	// Setup logging
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	if tlsCertDir == "" {
+		var err error
+		setupLog.Info("Generating self-signed certificates for the webhook server")
+		tlsCertDir, err = gencert.GenerateCert()
+		if err != nil {
+			setupLog.Error(err, "unable to generate a self-signed certificate")
+			os.Exit(1)
+		}
+	}
 
 	var eventRecorder *events.Recorder
 	if eventsAddr != "" {
@@ -109,7 +130,8 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Port:                   webPort,
+		CertDir:                tlsCertDir,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "54bd3b09.kubecfg.io",
@@ -120,14 +142,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.KonfigurationReconciler{
+	konfigurationController := &controllers.KonfigurationReconciler{
 		Client:                mgr.GetClient(),
 		Scheme:                mgr.GetScheme(),
 		EventRecorder:         mgr.GetEventRecorderFor(controllerName),
 		ExternalEventRecorder: eventRecorder,
 		MetricsRecorder:       metricsRecorder,
 		StatusPoller:          polling.NewStatusPoller(mgr.GetClient(), mgr.GetRESTMapper()),
-	}).SetupWithManager(setupLog, mgr, &reconcileOpts); err != nil {
+	}
+
+	mgr.GetWebhookServer().Register("/dry-run", konfigurationController.DryRunFunc())
+
+	if err = konfigurationController.SetupWithManager(setupLog, mgr, &reconcileOpts); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Konfiguration")
 		os.Exit(1)
 	}

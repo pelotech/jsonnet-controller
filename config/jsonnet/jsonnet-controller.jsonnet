@@ -156,7 +156,8 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
                                 POD_NAMESPACE: { fieldRef: { fieldPath: 'metadata.namespace' } }
                             },
                             ports_+: {
-                                http: { containerPort: 8080 },
+                                http: { containerPort: 9443 },
+                                metrics: { containerPort: 8080 },
                             },
                             volumeMounts_+: {
                                 manager_cache: { mountPath: '/cache' },
@@ -183,12 +184,22 @@ local kubecfg = import 'internal://lib/kubecfg.libsonnet';
         },
     },
 
-    metrics_service: kube.Service(this.name_prefix + '-metrics') {
+    service: kube.Service(this.name_prefix) {
         target_pod: this.manager_deployment.spec.template,
         metadata+: {
             namespace: this.namespace,
             labels: this.labels,
         },
-        spec+: { type: 'ClusterIP' },
+        spec+: { 
+            type: 'ClusterIP',
+            // http port will bind automatically from function
+            ports+: [
+                {
+                    port: 8080,
+                    name: 'metrics',
+                    targetPort: 8080
+                },
+            ]
+        },
     },
 }

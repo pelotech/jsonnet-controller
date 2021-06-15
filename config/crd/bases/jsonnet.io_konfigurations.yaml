@@ -106,6 +106,9 @@ spec:
                   - name
                   type: object
                 type: array
+              inject:
+                description: Inject raw jsonnet into the evaluation.
+                type: string
               interval:
                 description: The interval at which to reconcile the Konfiguration.
                 type: string

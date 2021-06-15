@@ -70,6 +70,10 @@ type KonfigurationSpec struct {
 	// +optional
 	Variables *Variables `json:"variables,omitempty"`
 
+	// Inject raw jsonnet into the evaluation.
+	// +optional
+	Inject string `json:"inject,omitempty"`
+
 	// The name of the Kubernetes service account to impersonate
 	// when reconciling this Konfiguration.
 	// +optional

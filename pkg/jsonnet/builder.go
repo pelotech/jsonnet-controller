@@ -184,13 +184,16 @@ func (b *builder) evaluateJsonnet(path string) (string, error) {
 		expr = fmt.Sprintf(`(import "internal:///kubecfg.libsonnet").parseJson(importstr @'%s')`, quotedPath)
 	case ".yaml":
 		expr = fmt.Sprintf(`(import "internal:///kubecfg.libsonnet").parseYaml(importstr @'%s')`, quotedPath)
-	case ".jsonnet":
-		expr = fmt.Sprintf("import @'%s'", quotedPath)
+	case ".jsonnet", ".libsonnet":
+		expr = fmt.Sprintf("(import @'%s')", quotedPath)
 	default:
-		// Keep unquoted path in return error to not confuse anyone
-		// TODO: This should be smarter than just checking file extensions
-		return "", fmt.Errorf("unknown file extension: %s", path)
+		// Assume jsonnet - we are, after all, a jsonnet-controller
+		expr = fmt.Sprintf("(import @'%s')", quotedPath)
 	}
+
+	// Add any user-defined injections
+	expr += b.konfig.GetInjectSnippet()
+
 	return b.vm.EvaluateAnonymousSnippet("", expr)
 }
 
