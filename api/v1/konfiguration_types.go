@@ -59,7 +59,7 @@ type KonfigurationSpec struct {
 	// Additional search paths to add to the jsonnet importer. These are relative to
 	// the root of the sourceRef.
 	// +optional
-	JsonnetPaths []string `json:"jsonnerPaths,omitempty"`
+	JsonnetPaths []string `json:"jsonnetPaths,omitempty"`
 
 	// Additional HTTP(S) URLs to add to the jsonnet importer.
 	// +optional
@@ -77,7 +77,7 @@ type KonfigurationSpec struct {
 
 	// Reference of the source where the jsonnet, json, or yaml file(s) are.
 	// +optional
-	SourceRef *CrossNamespaceSourceReference `json:"sourceRef"`
+	SourceRef *CrossNamespaceSourceReference `json:"sourceRef,omitempty"`
 
 	// Prune enables garbage collection. This means that when newly rendered
 	// jsonnet does not contain objects that were applied previously, they will

@@ -109,7 +109,7 @@ spec:
               interval:
                 description: The interval at which to reconcile the Konfiguration.
                 type: string
-              jsonnerPaths:
+              jsonnetPaths:
                 description: Additional search paths to add to the jsonnet importer.
                   These are relative to the root of the sourceRef.
                 items:

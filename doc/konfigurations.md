@@ -115,7 +115,7 @@ Konfiguration is the Schema for the konfigurations API
 <td><p>Path to the jsonnet, json, or yaml that should be applied to the cluster. Defaults to ‘None’, which translates to the root path of the SourceRef. When declared as a file path it is assumed to be from the root path of the SourceRef. You may also define a HTTP(S) link to fetch files from a remote location.</p></td>
 </tr>
 <tr class="even">
-<td><code>jsonnerPaths</code><br />
+<td><code>jsonnetPaths</code><br />
 <em>[]string</em></td>
 <td><em>(Optional)</em>
 <p>Additional search paths to add to the jsonnet importer. These are relative to the root of the sourceRef.</p></td>
@@ -231,7 +231,7 @@ KonfigurationSpec defines the desired state of a Konfiguration
 <td><p>Path to the jsonnet, json, or yaml that should be applied to the cluster. Defaults to ‘None’, which translates to the root path of the SourceRef. When declared as a file path it is assumed to be from the root path of the SourceRef. You may also define a HTTP(S) link to fetch files from a remote location.</p></td>
 </tr>
 <tr class="even">
-<td><code>jsonnerPaths</code><br />
+<td><code>jsonnetPaths</code><br />
 <em>[]string</em></td>
 <td><em>(Optional)</em>
 <p>Additional search paths to add to the jsonnet importer. These are relative to the root of the sourceRef.</p></td>
@@ -513,4 +513,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `7cc3da7`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `162bebf`.*
