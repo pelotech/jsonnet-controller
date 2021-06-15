@@ -173,7 +173,6 @@ func (m *manager) Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigur
 		Items:
 			for _, item := range ulist.Items {
 				id := fmt.Sprintf("%s/%s/%s", item.GetKind(), item.GetNamespace(), item.GetName())
-				log.Info(fmt.Sprintf("Checking if '%s' should be pruned", id))
 
 				if m.shouldNotPrune(&item) {
 					log.Info(fmt.Sprintf("GC is disabled for '%s'", id))
@@ -217,7 +216,6 @@ func (m *manager) Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigur
 	ClusterItems:
 		for _, item := range ulist.Items {
 			id := fmt.Sprintf("%s/%s/%s", item.GetKind(), item.GetNamespace(), item.GetName())
-			log.Info(fmt.Sprintf("Checking if '%s' should be pruned", id))
 
 			if m.shouldNotPrune(&item) {
 				log.Info(fmt.Sprintf("GC is disabled for '%s'", id))

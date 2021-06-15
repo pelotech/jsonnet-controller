@@ -2,7 +2,7 @@
 
 A fluxcd controller for managing manifests declared in jsonnet.
 
-Kubecfg (and its internal libraries) as well as Tanka-style directories are supported.
+Kubecfg (and its internal libraries) as well as Tanka-style directories with a `main.jsonnet` are supported.
 
 ---
 
