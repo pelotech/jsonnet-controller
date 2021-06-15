@@ -79,8 +79,10 @@ type KonfigurationSpec struct {
 	// +optional
 	SourceRef *CrossNamespaceSourceReference `json:"sourceRef"`
 
-	// Prune enables garbage collection. Note that this makes commands take
-	// considerably longer, so you may want to adjust your timeouts accordingly.
+	// Prune enables garbage collection. This means that when newly rendered
+	// jsonnet does not contain objects that were applied previously, they will
+	// be removed. When a Konfiguration is removed that had this value set to
+	// `true`, all resources created by it will also be removed.
 	// +required
 	Prune bool `json:"prune"`
 

@@ -147,7 +147,7 @@ Konfiguration is the Schema for the konfigurations API
 <tr class="odd">
 <td><code>prune</code><br />
 <em>bool</em></td>
-<td><p>Prune enables garbage collection. Note that this makes commands take considerably longer, so you may want to adjust your timeouts accordingly.</p></td>
+<td><p>Prune enables garbage collection. This means that when newly rendered jsonnet does not contain objects that were applied previously, they will be removed. When a Konfiguration is removed that had this value set to <code>true</code>, all resources created by it will also be removed.</p></td>
 </tr>
 <tr class="even">
 <td><code>healthChecks</code><br />
@@ -263,7 +263,7 @@ KonfigurationSpec defines the desired state of a Konfiguration
 <tr class="odd">
 <td><code>prune</code><br />
 <em>bool</em></td>
-<td><p>Prune enables garbage collection. Note that this makes commands take considerably longer, so you may want to adjust your timeouts accordingly.</p></td>
+<td><p>Prune enables garbage collection. This means that when newly rendered jsonnet does not contain objects that were applied previously, they will be removed. When a Konfiguration is removed that had this value set to <code>true</code>, all resources created by it will also be removed.</p></td>
 </tr>
 <tr class="even">
 <td><code>healthChecks</code><br />
@@ -513,4 +513,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `78d4e99`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `7cc3da7`.*
