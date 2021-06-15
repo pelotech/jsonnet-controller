@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
 	"github.com/pelotech/jsonnet-controller/pkg/jsonnet"
@@ -43,6 +44,10 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 				}
 				_, path, clean, err := r.prepareSource(ctx, &konfig)
 				if err != nil {
+					if client.IgnoreNotFound(err) == nil {
+						returnError(w, http.StatusInternalServerError, err.Error())
+						return
+					}
 					lastErr = err
 					continue
 				}
