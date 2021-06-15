@@ -130,7 +130,7 @@ Konfiguration is the Schema for the konfigurations API
 <td><code>variables</code><br />
 <em><a href="#Variables">Variables</a></em></td>
 <td><em>(Optional)</em>
-<p>Variables to use when invoking kubecfg to render manifests.</p></td>
+<p>External variables and top-level arguments to supply to the jsonnet at <code>path</code>.</p></td>
 </tr>
 <tr class="odd">
 <td><code>serviceAccountName</code><br />
@@ -159,7 +159,7 @@ Konfiguration is the Schema for the konfigurations API
 <td><code>suspend</code><br />
 <em>bool</em></td>
 <td><em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent kubecfg executions, it does not apply to already started executions. Defaults to false.</p></td>
+<p>This flag tells the controller to suspend subsequent reconciliations, it does not apply to already started executions. Defaults to false.</p></td>
 </tr>
 <tr class="even">
 <td><code>timeout</code><br />
@@ -246,7 +246,7 @@ KonfigurationSpec defines the desired state of a Konfiguration
 <td><code>variables</code><br />
 <em><a href="#Variables">Variables</a></em></td>
 <td><em>(Optional)</em>
-<p>Variables to use when invoking kubecfg to render manifests.</p></td>
+<p>External variables and top-level arguments to supply to the jsonnet at <code>path</code>.</p></td>
 </tr>
 <tr class="odd">
 <td><code>serviceAccountName</code><br />
@@ -275,7 +275,7 @@ KonfigurationSpec defines the desired state of a Konfiguration
 <td><code>suspend</code><br />
 <em>bool</em></td>
 <td><em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent kubecfg executions, it does not apply to already started executions. Defaults to false.</p></td>
+<p>This flag tells the controller to suspend subsequent reconciliations, it does not apply to already started executions. Defaults to false.</p></td>
 </tr>
 <tr class="even">
 <td><code>timeout</code><br />
@@ -513,4 +513,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `edff2a6`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `78d4e99`.*

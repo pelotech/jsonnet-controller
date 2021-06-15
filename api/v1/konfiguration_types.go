@@ -65,7 +65,8 @@ type KonfigurationSpec struct {
 	// +optional
 	JsonnetURLs []string `json:"jsonnetURLs,omitempty"`
 
-	// Variables to use when invoking kubecfg to render manifests.
+	// External variables and top-level arguments to supply to the jsonnet
+	// at `path`.
 	// +optional
 	Variables *Variables `json:"variables,omitempty"`
 
@@ -87,7 +88,7 @@ type KonfigurationSpec struct {
 	// +optional
 	HealthChecks []meta.NamespacedObjectKindReference `json:"healthChecks,omitempty"`
 
-	// This flag tells the controller to suspend subsequent kubecfg executions,
+	// This flag tells the controller to suspend subsequent reconciliations,
 	// it does not apply to already started executions. Defaults to false.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`

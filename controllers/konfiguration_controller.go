@@ -363,28 +363,30 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 		})
 	}
 
-	// Prune any orphaned resources
-	if changeset, ok := manager.Prune(ctx, konfig.Status.Snapshot, snapshot); !ok {
-		msg := fmt.Sprintf("failed to garbage-collect orphaned resources: %s", changeset)
-		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
-			revision, konfigurationv1.PruneFailedReason, msg),
-		); statusErr != nil {
-			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+	// Prune any orphaned resources if enabled
+	if konfig.GCEnabled() {
+		if changeset, ok := manager.Prune(ctx, konfig.Status.Snapshot, snapshot); !ok {
+			msg := fmt.Sprintf("failed to garbage-collect orphaned resources: %s", changeset)
+			if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
+				revision, konfigurationv1.PruneFailedReason, msg),
+			); statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+			}
+			r.event(ctx, konfig, &EventData{
+				Revision: revision,
+				Severity: events.EventSeverityError,
+				Message:  changeset,
+				Metadata: map[string]string{},
+			})
+			return nil, fmt.Errorf(msg)
+		} else if changeset != "" {
+			r.event(ctx, konfig, &EventData{
+				Revision: revision,
+				Severity: events.EventSeverityInfo,
+				Message:  changeset,
+				Metadata: map[string]string{},
+			})
 		}
-		r.event(ctx, konfig, &EventData{
-			Revision: revision,
-			Severity: events.EventSeverityError,
-			Message:  changeset,
-			Metadata: map[string]string{},
-		})
-		return nil, fmt.Errorf(msg)
-	} else if changeset != "" {
-		r.event(ctx, konfig, &EventData{
-			Revision: revision,
-			Severity: events.EventSeverityInfo,
-			Message:  changeset,
-			Metadata: map[string]string{},
-		})
 	}
 
 	// Check healthiness
