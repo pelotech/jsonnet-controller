@@ -24,6 +24,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/go-logr/logr"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,8 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/go-logr/logr"
 	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
+	"github.com/pelotech/jsonnet-controller/pkg/diff"
 )
 
 // ReconcileeWithTimeout is an interface extending client.Object that includes
@@ -281,11 +283,11 @@ func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, ob
 			// The object doesn't exist, create it
 			log.Info(fmt.Sprintf("Creating %s '%s'", obj.GetKind(), nn.String()))
 			if m.parent.ShouldValidate() {
-				if err := m.Create(ctx, obj, client.DryRunAll); err != nil {
+				if err := m.serverSideApply(ctx, obj, true); err != nil {
 					return fmt.Sprintf("create failed for '%s' (dry-run): %s\n", id, err.Error()), err
 				}
 			}
-			if err := m.Create(ctx, obj); err != nil {
+			if err := m.serverSideApply(ctx, obj, false); err != nil {
 				return fmt.Sprintf("create failed for '%s': %s\n", id, err.Error()), err
 			}
 			return fmt.Sprintf("%s created\n", id), nil
@@ -306,13 +308,23 @@ func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, ob
 	foundChecksum, ok := foundAnnotations[konfigurationv1.LastAppliedConfigAnnotation]
 	if !ok {
 		// No checksum annotation - we need to patch the object
-		log.Info(fmt.Sprintf("Existing %s '%s' has no last-applied annotation, updating", obj.GetKind(), nn.String()))
+		log.Info(fmt.Sprintf("Existing %s '%s' has no last-applied-checksum annotation, updating", obj.GetKind(), nn.String()))
 		return m.patch(ctx, found, obj, id)
 	}
 
-	// Check if checksum has changed
+	// Check if checksum has changed - this is easier then doing a diff and will tell us
+	// if a change is happened since the last apply by the controller
 	if foundChecksum != checksum {
-		log.Info(fmt.Sprintf("%s '%s' definition has changed, updating", obj.GetKind(), nn.String()))
+		log.Info(fmt.Sprintf("%s '%s' definition has a new checksum, updating", obj.GetKind(), nn.String()),
+			"OldChecksum", foundChecksum, "NewChecksum", checksum)
+		return m.patch(ctx, found, obj, id)
+	}
+
+	// Do a full diff
+	if res, err := diff.Diff(obj, found); err != nil {
+		return fmt.Sprintf("computing diff failed for '%s': %s\n", id, err.Error()), err
+	} else if res.Modified {
+		log.Info(fmt.Sprintf("%s '%s' definition has drifted, updating", obj.GetKind(), nn.String()))
 		return m.patch(ctx, found, obj, id)
 	}
 
@@ -322,14 +334,28 @@ func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, ob
 
 func (m *manager) patch(ctx context.Context, old, new *unstructured.Unstructured, id string) (string, error) {
 	if m.parent.ShouldValidate() {
-		if err := m.Patch(ctx, new, client.Merge, &client.PatchOptions{DryRun: []string{"All"}}); err != nil {
+		if err := m.serverSideApply(ctx, new, true); err != nil {
 			return fmt.Sprintf("update failed for '%s' (dry-run): %s\n", id, err.Error()), err
 		}
 	}
-	if err := m.Patch(ctx, new, client.Merge); err != nil {
-		return fmt.Sprintf("update failed for '%s' (dry-run): %s\n", id, err.Error()), err
+	if err := m.serverSideApply(ctx, new, false); err != nil {
+		return fmt.Sprintf("update failed for '%s': %s\n", id, err.Error()), err
 	}
 	return fmt.Sprintf("%s configured\n", id), nil
+}
+
+func (m *manager) serverSideApply(ctx context.Context, new *unstructured.Unstructured, dryRun bool) error {
+	annotations := new.GetAnnotations()
+	new.SetAnnotations(annotations)
+	opts := []client.PatchOption{
+		client.ForceOwnership,
+		client.FieldOwner(konfigurationv1.ServerSideApplyOwner),
+	}
+	if dryRun {
+		// DeepCopy the object for a dryrun or else managed fields will get populated
+		return m.Patch(ctx, new.DeepCopy(), client.Apply, append(opts, client.DryRunAll)...)
+	}
+	return m.Patch(ctx, new, client.Apply, opts...)
 }
 
 func (m *manager) computeObjectChecksum(obj *unstructured.Unstructured) (checksum string, err error) {

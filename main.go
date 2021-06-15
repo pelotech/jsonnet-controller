@@ -56,7 +56,7 @@ func init() {
 	utilruntime.Must(konfigurationv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 
-	_ = sourcev1.AddToScheme(scheme)
+	utilruntime.Must(sourcev1.AddToScheme(scheme))
 }
 
 func main() {

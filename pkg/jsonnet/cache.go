@@ -109,7 +109,9 @@ func (h *httpCache) Get(url string) (jsonnet.Contents, error) {
 	}
 	defer res.Body.Close()
 
-	h.log.Info(fmt.Sprintf("GET %q -> %s", url, res.Status))
+	if isHTTP {
+		h.log.Info(fmt.Sprintf("GET %q -> %s", url, res.Status))
+	}
 	if res.StatusCode == http.StatusNotFound {
 		return jsonnet.Contents{}, errNotFound
 	} else if res.StatusCode != http.StatusOK {

@@ -4,6 +4,8 @@ go 1.16
 
 require (
 	github.com/cyphar/filepath-securejoin v0.2.2
+	github.com/davecgh/go-spew v1.1.1
+	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/fluxcd/pkg/apis/meta v0.10.0
 	github.com/fluxcd/pkg/runtime v0.12.0
 	github.com/fluxcd/pkg/untar v0.1.0
