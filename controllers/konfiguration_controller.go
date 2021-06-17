@@ -35,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kuberecorder "k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/reference"
 	"sigs.k8s.io/cli-utils/pkg/kstatus/polling"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -137,6 +138,7 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := log.FromContext(ctx)
+	reconcileStart := time.Now()
 
 	reqLogger.Info("Reconciling konfiguration")
 
@@ -149,6 +151,9 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		return ctrl.Result{}, err
 	}
+
+	// Record suspended status metric
+	defer r.recordSuspension(ctx, konfig)
 
 	// Add our finalizer if it does not exist
 	if !controllerutil.ContainsFinalizer(konfig, konfigurationv1.KonfigurationFinalizer) {
@@ -172,15 +177,10 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}, nil
 	}
 
-	// set the status to progressing
-	if err := konfig.SetProgressing(ctx, r.Client); err != nil {
-		reqLogger.Error(err, "unable to update status to progressing")
-		return ctrl.Result{Requeue: true}, err
-	}
-
 	// Get the revision and the path we are going to operate on
 	revision, path, clean, err := r.prepareSource(ctx, konfig)
 	if err != nil {
+		r.recordReadiness(ctx, konfig)
 		return ctrl.Result{
 			RequeueAfter: konfig.GetRetryInterval(),
 		}, nil
@@ -201,8 +201,25 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			Severity: events.EventSeverityInfo,
 			Message:  msg,
 		})
+		r.recordReadiness(ctx, konfig)
 		return ctrl.Result{RequeueAfter: r.dependencyRequeueDuration}, nil
 	}
+
+	// record reconciliation duration
+	if r.MetricsRecorder != nil {
+		objRef, err := reference.GetReference(r.Scheme, konfig)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		defer r.MetricsRecorder.RecordDuration(*objRef, reconcileStart)
+	}
+
+	// set the status to progressing
+	if err := konfig.SetProgressing(ctx, r.Client); err != nil {
+		reqLogger.Error(err, "unable to update status to progressing")
+		return ctrl.Result{Requeue: true}, err
+	}
+	r.recordReadiness(ctx, konfig)
 
 	// Do reconciliation
 	snapshot, err := r.reconcile(ctx, konfig, revision, path)
@@ -247,6 +264,8 @@ func (r *KonfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigurationv1.Konfiguration, revision, path string) (*konfigurationv1.Snapshot, error) {
 	reqLogger := log.FromContext(ctx)
+	// Record the status metric no matter the outcome
+	defer r.recordReadiness(ctx, konfig)
 
 	// Allocate a new temp directory for the current reconcile's workspace
 	dirPath, err := ioutil.TempDir("", konfig.GetName())
@@ -430,6 +449,9 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *k
 			})
 		}
 	}
+
+	// Record deleted status
+	r.recordReadiness(ctx, konfig)
 
 	// Remove our finalizer from the list and update it
 	controllerutil.RemoveFinalizer(konfig, konfigurationv1.KonfigurationFinalizer)

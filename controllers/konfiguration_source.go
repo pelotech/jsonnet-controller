@@ -51,6 +51,7 @@ func (r *KonfigurationReconciler) prepareSource(ctx context.Context, konfig *kon
 		source, err = sourceRef.GetSource(ctx, r.Client)
 		if err != nil {
 			msg := fmt.Sprintf("Source '%s' not found", konfig.Spec.SourceRef.String())
+			reqLogger.Info(msg)
 			if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta("", konfigurationv1.ArtifactFailedReason, msg)); statusErr != nil {
 				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 			}
