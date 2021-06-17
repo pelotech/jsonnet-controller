@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cli-utils/pkg/kstatus/polling"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -134,7 +133,7 @@ func main() {
 		CertDir:                tlsCertDir,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "54bd3b09.kubecfg.io",
+		LeaderElectionID:       "54bd3b09.jsonnet.io",
 		Namespace:              watchNamespace,
 	})
 	if err != nil {
@@ -148,7 +147,7 @@ func main() {
 		EventRecorder:         mgr.GetEventRecorderFor(controllerName),
 		ExternalEventRecorder: eventRecorder,
 		MetricsRecorder:       metricsRecorder,
-		StatusPoller:          polling.NewStatusPoller(mgr.GetClient(), mgr.GetRESTMapper()),
+		HTTPLog:               ctrl.Log.WithName("webhook"),
 	}
 
 	mgr.GetWebhookServer().Register("/dry-run", konfigurationController.DryRunFunc())

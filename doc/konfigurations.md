@@ -525,4 +525,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `5cd214e`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `26052b6`.*

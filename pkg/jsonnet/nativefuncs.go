@@ -36,16 +36,6 @@ import (
 
 // registerNativeFuncs adds kubecfg's native jsonnet functions to provided VM
 func registerNativeFuncs(vm *jsonnet.VM) {
-	// TODO(mkm): go-jsonnet 0.12.x now contains native std.parseJson; deprecate and remove this one.
-	vm.NativeFunction(&jsonnet.NativeFunction{
-		Name:   "parseJson",
-		Params: []jsonnetAst.Identifier{"json"},
-		Func: func(args []interface{}) (res interface{}, err error) {
-			data := []byte(args[0].(string))
-			err = json.Unmarshal(data, &res)
-			return
-		},
-	})
 
 	vm.NativeFunction(&jsonnet.NativeFunction{
 		Name:   "parseYaml",

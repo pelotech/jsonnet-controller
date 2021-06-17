@@ -65,6 +65,21 @@ func (k *Konfiguration) GetTimeout() time.Duration {
 // (usually that of the controller-runtime at launch).
 func (k *Konfiguration) GetKubeConfig() *KubeConfig { return k.Spec.KubeConfig }
 
+// GetKubeConfigSecretName satisfies the Impersonator interface and returns the kubeconfig
+// secret name, if any.
+func (k *Konfiguration) GetKubeConfigSecretName() string {
+	if cfg := k.GetKubeConfig(); cfg != nil {
+		return cfg.SecretRef.Name
+	}
+	return ""
+}
+
+// GetServiceAccountName satisfies the Impersonator interface and returns the service account
+// to assume, if any.
+func (k *Konfiguration) GetServiceAccountName() string {
+	return k.Spec.ServiceAccountName
+}
+
 // Fetch will use the given client and namespace to retrieve the contents of the
 // kubeconfig from the referenced secret.
 func (k *KubeConfig) Fetch(ctx context.Context, c client.Client, namespace string) (string, error) {

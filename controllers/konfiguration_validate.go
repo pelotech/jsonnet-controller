@@ -23,13 +23,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
+	"github.com/pelotech/jsonnet-controller/pkg/impersonation"
 	"github.com/pelotech/jsonnet-controller/pkg/jsonnet"
 )
 
@@ -48,7 +48,7 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 			return
 		}
 
-		r.httpLog.Info(fmt.Sprintf("Dry run request for %s/%s", konfig.GetNamespace(), konfig.GetName()))
+		r.HTTPLog.Info(fmt.Sprintf("Dry run request for %s/%s", konfig.GetNamespace(), konfig.GetName()))
 
 		var lastErr error
 		for {
@@ -77,8 +77,9 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 				}
 				defer os.RemoveAll(dirPath)
 
-				impersonation := NewKonfigurationImpersonation(&konfig, r.Client, r.StatusPoller, filepath.Dir(path))
-				kubeClient, _, err := impersonation.GetClient(ctx)
+				imp := impersonation.NewImpersonation(&konfig, r.Client, dirPath)
+				kubeClient, err := imp.GetClient(ctx)
+
 				if err != nil {
 					r.returnError(w, http.StatusInternalServerError, err.Error())
 					return
@@ -103,7 +104,7 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 				}
 
 				if _, err := w.Write(append(stream, []byte("\n")...)); err != nil {
-					r.httpLog.Error(err, "Error writing yaml stream to response")
+					r.HTTPLog.Error(err, "Error writing yaml stream to response")
 				}
 
 				return
@@ -113,16 +114,16 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 }
 
 func (r *KonfigurationReconciler) returnError(w http.ResponseWriter, statusCode int, message string) {
-	r.httpLog.Info(fmt.Sprintf("Konfiguration dry-run error: %s", message))
+	r.HTTPLog.Info(fmt.Sprintf("Konfiguration dry-run error: %s", message))
 	out, err := json.MarshalIndent(map[string]string{
 		"error": message,
 	}, "", "  ")
 	if err != nil {
-		r.httpLog.Error(err, "Error marshalling json return")
+		r.HTTPLog.Error(err, "Error marshalling json return")
 		return
 	}
 	w.WriteHeader(statusCode)
 	if _, err := w.Write(append(out, []byte("\n")...)); err != nil {
-		r.httpLog.Error(err, "Error writing response")
+		r.HTTPLog.Error(err, "Error writing response")
 	}
 }

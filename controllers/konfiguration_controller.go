@@ -50,6 +50,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 
 	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
+	"github.com/pelotech/jsonnet-controller/pkg/impersonation"
 	"github.com/pelotech/jsonnet-controller/pkg/jsonnet"
 	"github.com/pelotech/jsonnet-controller/pkg/resources"
 )
@@ -61,14 +62,12 @@ type KonfigurationReconciler struct {
 	EventRecorder         kuberecorder.EventRecorder
 	ExternalEventRecorder *events.Recorder
 	MetricsRecorder       *metrics.Recorder
-	StatusPoller          *polling.StatusPoller
+	HTTPLog               logr.Logger
 
 	httpClient                *retryablehttp.Client
 	dependencyRequeueDuration time.Duration
 	jsonnetCache              string
 	dryRunTimeout             time.Duration
-
-	httpLog logr.Logger
 }
 
 type ReconcilerOptions struct {
@@ -91,7 +90,6 @@ func (r *KonfigurationReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Man
 	r.dependencyRequeueDuration = opts.DependencyRequeueInterval
 	r.jsonnetCache = opts.JsonnetCacheDirectory
 	r.dryRunTimeout = opts.DryRunRequestTimeout
-	r.httpLog = log.WithName("webhook")
 
 	// Index the Kustomizations by the GitRepository references they (may) point at.
 	if err := mgr.GetCache().IndexField(context.TODO(), &konfigurationv1.Konfiguration{}, konfigurationv1.GitRepositoryIndexKey,
@@ -258,8 +256,8 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 	defer os.RemoveAll(dirPath)
 
 	// Create any necessary kube-clients for impersonation
-	impersonation := NewKonfigurationImpersonation(konfig, r.Client, r.StatusPoller, dirPath)
-	kubeClient, statusPoller, err := impersonation.GetClient(ctx)
+	imp := impersonation.NewImpersonation(konfig, r.Client, dirPath)
+	kubeClient, err := imp.GetClient(ctx)
 	if err != nil {
 		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
 			revision, meta.ReconciliationFailedReason, err.Error()),
@@ -386,7 +384,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 	}
 
 	// Check healthiness
-	if err := r.checkHealth(ctx, statusPoller, konfig, revision); err != nil {
+	if err := r.checkHealth(ctx, kubeClient.StatusPoller(), konfig, revision); err != nil {
 		if statusErr := konfig.SetNotReadySnapshot(ctx, r.Client, snapshot, konfigurationv1.NewStatusMeta(
 			revision, konfigurationv1.HealthCheckFailedReason, err.Error()),
 		); statusErr != nil {
@@ -420,9 +418,8 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *k
 			reqLogger.Info("Could not write the allocate a temp directory")
 			return ctrl.Result{}, err
 		}
-
-		impersonation := NewKonfigurationImpersonation(konfig, r.Client, r.StatusPoller, dirPath)
-		kubeClient, _, err := impersonation.GetClient(ctx)
+		imp := impersonation.NewImpersonation(konfig, r.Client, dirPath)
+		kubeClient, err := imp.GetClient(ctx)
 		if err != nil {
 			r.event(ctx, konfig, &EventData{
 				Revision: konfig.Status.LastAppliedRevision,
