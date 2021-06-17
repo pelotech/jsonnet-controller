@@ -3,11 +3,11 @@ on:
     tags:
       - 'v*'
 
-name: jctl Release
+name: Konfig Release
 
 jobs:
   release:
-    name: Build and publish jctl binary
+    name: Build and publish konfig binary
     runs-on: ubuntu-latest
     steps:
 
@@ -24,7 +24,7 @@ jobs:
         run: sudo apt-get install -y upx
 
       - name: Build Release
-        run: make dist-jctl
+        run: make dist-konfig
 
       - name: Publish Artifacts
         uses: softprops/action-gh-release@v1
