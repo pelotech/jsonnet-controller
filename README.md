@@ -6,7 +6,7 @@ Kubecfg (and its internal libraries) as well as Tanka-style directories with a `
 
 ---
 
-This project is in very early stages proof-of-concept. Only `latest` images are published, and they are not guaranteed stable at the moment.
+This project is in very early stages proof-of-concept still. So expect bugs. But please feel free to open an Issue if you spot any :smile:.
 
 ## Quickstart
 
@@ -18,7 +18,7 @@ You can use either `kubectl`, [`kustomize`](https://kubectl.docs.kubernetes.io/i
 
 ```bash
 # Using kubectl - A bundle manifest is included in the repository that is
-# the output of the jsonnet with the default values.
+# the output of the jsonnet with the default values and latest tagged release.
 kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/main/config/bundle/manifest.yaml
 
 # Using kubecfg - import and extend this file for modifications
@@ -26,6 +26,8 @@ kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/main/config/
 ## If it isn't, create it (or import the file and set `create_namespace: true`):
 ##    kubectl create ns flux-system
 kubecfg update config/jsonnet/jsonnet-controller.jsonnet
+# To install a specific version of the controller
+kubecfg update --tla-str version=${VERSION} config/jsonnet/jsonnet-controller.jsonnet
 
 # Using kustomize
 cd config/manager
