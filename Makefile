@@ -87,7 +87,8 @@ api-docs: $(REFDOCS)  ## Generate API documentation
 	bash hack/update-api-docs.sh
 
 bundle: ## Generate the bundle manifest
-	$(KUBECFG) show config/jsonnet/jsonnet-controller.jsonnet > config/bundle/manifest.yaml
+	$(KUBECFG) show --tla-str version=$(VERSION) \
+		config/jsonnet/jsonnet-controller.jsonnet > config/bundle/manifest.yaml
 
 ##@ Deployment
 
@@ -170,7 +171,8 @@ docker-load: docker-build ## Load the manager image into the k3d cluster.
 	$(K3D) image import --cluster $(CLUSTER_NAME) $(IMG)
 
 deploy: ## Deploy the manager and CRDs into the k3d cluster.
-	$(KUBECFG) --context=$(CONTEXT) update config/jsonnet/jsonnet-controller.jsonnet
+	$(KUBECFG) --context=$(CONTEXT) --tla-str version=$(VERSION) \
+		update config/jsonnet/jsonnet-controller.jsonnet
 
 restart:
 	$(KUBECTL) delete --context=$(CONTEXT) \
