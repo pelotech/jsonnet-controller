@@ -19,9 +19,11 @@ var (
 func init() {
 	buildCmd.Flags().StringVarP(&buildOutput, "output", "o", "yaml", "The output format, valid options are json or yaml.")
 
-	buildCmd.RegisterFlagCompletionFunc("output", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if err := buildCmd.RegisterFlagCompletionFunc("output", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{"json", "yaml"}, cobra.ShellCompDirectiveDefault
-	})
+	}); err != nil {
+		panic(err)
+	}
 
 	rootCmd.AddCommand(buildCmd)
 }

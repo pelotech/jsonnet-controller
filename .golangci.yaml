@@ -2,5 +2,3 @@ run:
   timeout: 300s
   skip-files:
     - hack/gen-crd-reference-docs.go
-    - pkg/cmd/portforward.go
-    - pkg/cmd/build.go

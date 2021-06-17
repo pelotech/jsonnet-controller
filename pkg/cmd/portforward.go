@@ -57,8 +57,6 @@ func forwardControllerPort(port string) (forwarder *portforward.PortForwarder, s
 		}
 		if len(errOut.String()) != 0 {
 			err = errors.New(errOut.String())
-		} else if len(out.String()) != 0 {
-			// fmt.Println(out.String())
 		}
 	}()
 
