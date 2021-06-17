@@ -10,7 +10,7 @@ This project is in very early stages proof-of-concept still. So expect bugs. But
 
 ## Quickstart
 
-API Documentation is available [here](doc/konfigurations.md#Konfiguration).
+API Documentation is available [here](doc/konfigurations.md#konfigurationspec).
 
 ### Installing
 
