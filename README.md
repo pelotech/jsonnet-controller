@@ -181,5 +181,3 @@ make cluster flux-install docker-load deploy
 These are features and other tasks that need to be completed before an initial release will be ready.
 
 - [ ] Unit and E2E Tests
-- [ ] Better Validation Options
-- [ ] Better Patch Strategies
