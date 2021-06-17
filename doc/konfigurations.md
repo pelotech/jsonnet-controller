@@ -180,6 +180,12 @@ Konfiguration is the Schema for the konfigurations API
 <td><em>(Optional)</em>
 <p>Validate input against the server schema, defaults to true. At the moment this just implies a dry-run before patch/create operations. This will be updated to support different methods of validation.</p></td>
 </tr>
+<tr class="odd">
+<td><code>force</code><br />
+<em>bool</em></td>
+<td><em>(Optional)</em>
+<p>Force instructs the controller to recreate resources when patching fails due to an immutable field change.</p></td>
+</tr>
 </tbody>
 </table></td>
 </tr>
@@ -301,6 +307,12 @@ KonfigurationSpec defines the desired state of a Konfiguration
 <em>bool</em></td>
 <td><em>(Optional)</em>
 <p>Validate input against the server schema, defaults to true. At the moment this just implies a dry-run before patch/create operations. This will be updated to support different methods of validation.</p></td>
+</tr>
+<tr class="odd">
+<td><code>force</code><br />
+<em>bool</em></td>
+<td><em>(Optional)</em>
+<p>Force instructs the controller to recreate resources when patching fails due to an immutable field change.</p></td>
 </tr>
 </tbody>
 </table>
@@ -529,4 +541,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `eef1832`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `fb3125e`.*

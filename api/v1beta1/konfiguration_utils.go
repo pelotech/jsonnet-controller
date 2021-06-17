@@ -144,7 +144,7 @@ func (k *Konfiguration) IsSuspended() bool { return k.Spec.Suspend }
 
 // ForceCreate returns whether the controller should force recreating resources
 // when patching fails due to an immutable field change.
-// func (k *Konfiguration) ForceCreate() bool { return k.Spec.Force }
+func (k *Konfiguration) ForceCreate() bool { return k.Spec.Force }
 
 // GetDependsOn returns the konfigurations this one depends on.
 func (k Konfiguration) GetDependsOn() (types.NamespacedName, []dependency.CrossNamespaceDependencyReference) {

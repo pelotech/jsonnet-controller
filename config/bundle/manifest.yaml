@@ -80,6 +80,11 @@ spec:
                   - name
                   type: object
                 type: array
+              force:
+                default: false
+                description: Force instructs the controller to recreate resources
+                  when patching fails due to an immutable field change.
+                type: boolean
               healthChecks:
                 description: A list of resources to be included in the health assessment.
                 items:
@@ -451,6 +456,60 @@ spec:
         name: manager-tmp
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller-manager-role
+rules:
+- apiGroups:
+  - jsonnet.io
+  resources:
+  - konfigurations
+  - konfigurations/finalizers
+  - konfigurations/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - buckets
+  - gitrepositories
+  - buckets/status
+  - gitrepositories/status
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller-sa
+  namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   annotations: {}
@@ -539,60 +598,6 @@ roleRef:
   name: jsonnet-controller-manager-role
 subjects:
 - kind: ServiceAccount
-  name: jsonnet-controller-sa
-  namespace: flux-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
-  name: jsonnet-controller-manager-role
-rules:
-- apiGroups:
-  - jsonnet.io
-  resources:
-  - konfigurations
-  - konfigurations/finalizers
-  - konfigurations/status
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  - serviceaccounts
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - source.toolkit.fluxcd.io
-  resources:
-  - buckets
-  - gitrepositories
-  - buckets/status
-  - gitrepositories/status
-  verbs:
-  - get
-  - list
-  - watch
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
   name: jsonnet-controller-sa
   namespace: flux-system
 ---

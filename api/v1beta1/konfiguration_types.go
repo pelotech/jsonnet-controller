@@ -115,7 +115,7 @@ type KonfigurationSpec struct {
 	// when patching fails due to an immutable field change.
 	// +kubebuilder:default:=false
 	// +optional
-	// Force bool `json:"force,omitempty"`
+	Force bool `json:"force,omitempty"`
 }
 
 // KubeConfig holds the configuration for where to fetch the contents of a
