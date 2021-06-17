@@ -77,7 +77,7 @@ func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 				}
 				defer os.RemoveAll(dirPath)
 
-				imp := impersonation.NewImpersonation(&konfig, r.Client, dirPath)
+				imp := impersonation.NewImpersonation(&konfig, r.Client)
 				kubeClient, err := imp.GetClient(ctx)
 
 				if err != nil {

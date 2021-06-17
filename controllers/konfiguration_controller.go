@@ -256,7 +256,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 	defer os.RemoveAll(dirPath)
 
 	// Create any necessary kube-clients for impersonation
-	imp := impersonation.NewImpersonation(konfig, r.Client, dirPath)
+	imp := impersonation.NewImpersonation(konfig, r.Client)
 	kubeClient, err := imp.GetClient(ctx)
 	if err != nil {
 		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
@@ -397,28 +397,10 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 }
 
 func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *konfigurationv1.Konfiguration) (ctrl.Result, error) {
-	reqLogger := log.FromContext(ctx)
-
-	// If the konfig had prunening enabled and wasn't suspended for deletion
-	// Run a kubecfg delete.
+	// If the konfig had pruning enabled and wasn't suspended before deletion,
+	// run garbage collection.
 	if konfig.GCEnabled() && !konfig.IsSuspended() {
-		// Allocate a new temp directory for the current reconcile's workspace
-		dirPath, err := ioutil.TempDir("", konfig.GetName())
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		defer os.RemoveAll(dirPath)
-
-		if err != nil {
-			r.event(ctx, konfig, &EventData{
-				Revision: konfig.Status.LastAppliedRevision,
-				Severity: events.EventSeverityError,
-				Message:  err.Error(),
-			})
-			reqLogger.Info("Could not write the allocate a temp directory")
-			return ctrl.Result{}, err
-		}
-		imp := impersonation.NewImpersonation(konfig, r.Client, dirPath)
+		imp := impersonation.NewImpersonation(konfig, r.Client)
 		kubeClient, err := imp.GetClient(ctx)
 		if err != nil {
 			r.event(ctx, konfig, &EventData{
@@ -432,6 +414,7 @@ func (r *KonfigurationReconciler) reconcileDelete(ctx context.Context, konfig *k
 		// Create a resource manager for the konfiguration
 		manager := resources.NewResourceManager(kubeClient, konfig)
 
+		// Prune the contents of the last snapshot against an empty one.
 		if changeset, ok := manager.Prune(ctx, konfig.Status.Snapshot, nil); !ok {
 			r.event(ctx, konfig, &EventData{
 				Revision: konfig.Status.LastAppliedRevision,

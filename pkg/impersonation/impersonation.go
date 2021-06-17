@@ -57,19 +57,19 @@ type Impersonation interface {
 	GetClient(ctx context.Context) (Client, error)
 }
 
-func NewImpersonation(imp Impersonator, kubeClient client.Client, workdir string) Impersonation {
+// NewImpersonation creates a new Impersonation using the given CR and client.
+func NewImpersonation(imp Impersonator, kubeClient client.Client) Impersonation {
 	return &impersonation{
-		workdir: workdir,
-		imp:     imp,
-		Client:  kubeClient,
+		imp:    imp,
+		Client: kubeClient,
 	}
 }
 
 type impersonation struct {
 	client.Client
 
-	imp     Impersonator
-	workdir string
+	// The CR backing this impersonation
+	imp Impersonator
 
 	// cached assets
 	serviceAccountToken string
