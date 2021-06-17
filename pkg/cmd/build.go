@@ -12,19 +12,7 @@ import (
 	"k8s.io/client-go/tools/portforward"
 )
 
-var (
-	buildOutput string
-)
-
 func init() {
-	buildCmd.Flags().StringVarP(&buildOutput, "output", "o", "yaml", "The output format, valid options are json or yaml.")
-
-	if err := buildCmd.RegisterFlagCompletionFunc("output", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{"json", "yaml"}, cobra.ShellCompDirectiveDefault
-	}); err != nil {
-		panic(err)
-	}
-
 	rootCmd.AddCommand(buildCmd)
 }
 
@@ -33,7 +21,7 @@ var stopChan chan struct{}
 var localAddr string
 
 var buildCmd = &cobra.Command{
-	Use:   "build",
+	Use:   "build <PATH>",
 	Short: "Evaluate what a given Konfiguration manifest would produce",
 	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
