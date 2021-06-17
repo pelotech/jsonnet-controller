@@ -21,9 +21,9 @@ var stopChan chan struct{}
 var localAddr string
 
 var buildCmd = &cobra.Command{
-	Use:   "build <PATH>",
+	Use:   "build [PATH]",
 	Short: "Evaluate what a given Konfiguration manifest would produce",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		forwarder, stopChan, err = forwardControllerPort("9443")
@@ -45,6 +45,9 @@ var buildCmd = &cobra.Command{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 			},
+		}
+		if len(args) == 0 || args[0] == "-" {
+			args = []string{os.Stdin.Name()}
 		}
 		f, err := os.Open(args[0])
 		if err != nil {

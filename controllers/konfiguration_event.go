@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/tools/reference"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1beta1"
 )
 
 type EventData struct {

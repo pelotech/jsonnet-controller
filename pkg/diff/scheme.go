@@ -22,7 +22,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
-	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1beta1"
 )
 
 var Scheme = runtime.NewScheme()

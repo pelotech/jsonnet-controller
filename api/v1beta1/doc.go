@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1 file doc.go required for the doc generator to register this as an API
+// Package v1beta1 file doc.go required for the doc generator to register this as an API
 //
 // +groupName=jsonnet.io
-package v1
+package v1beta1

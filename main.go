@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1beta1"
 	"github.com/pelotech/jsonnet-controller/controllers"
 	"github.com/pelotech/jsonnet-controller/pkg/gencert"
 	//+kubebuilder:scaffold:imports

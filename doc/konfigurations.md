@@ -1,17 +1,18 @@
 Packages:
 
--   [jsonnet.io/v1](#jsonnet.io%2fv1)
+-   [jsonnet.io/v1beta1](#jsonnet.io%2fv1beta1)
 
-## jsonnet.io/v1
+## jsonnet.io/v1beta1
 
-Package v1 file doc.go required for the doc generator to register this
-as an API
+Package v1beta1 file doc.go required for the doc generator to register
+this as an API
 
 Resource Types:
 
 ### CrossNamespaceSourceReference
 
-(*Appears on:*[KonfigurationSpec](#KonfigurationSpec))
+(*Appears
+on:*[KonfigurationSpec](#KonfigurationSpec))
 
 CrossNamespaceSourceReference contains enough information to let you
 locate the typed referenced object at cluster level
@@ -356,7 +357,8 @@ KonfigurationStatus defines the observed state of Konfiguration
 
 ### KubeConfig
 
-(*Appears on:*[KonfigurationSpec](#KonfigurationSpec))
+(*Appears
+on:*[KonfigurationSpec](#KonfigurationSpec))
 
 KubeConfig holds the configuration for where to fetch the contents of a
 kubeconfig file.
@@ -383,7 +385,8 @@ kubeconfig file.
 
 ### Snapshot
 
-(*Appears on:*[KonfigurationStatus](#KonfigurationStatus))
+(*Appears
+on:*[KonfigurationStatus](#KonfigurationStatus))
 
 Snapshot holds the metadata of the Kubernetes objects generated for a
 source revision
@@ -479,7 +482,8 @@ Snapshot holds the metadata of namespaced Kubernetes objects
 
 ### Variables
 
-(*Appears on:*[KonfigurationSpec](#KonfigurationSpec))
+(*Appears
+on:*[KonfigurationSpec](#KonfigurationSpec))
 
 Variables describe code/strings for external variables and top-level
 arguments.
@@ -525,4 +529,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `26052b6`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `eef1832`.*

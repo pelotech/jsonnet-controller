@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1beta1"
 	"github.com/pelotech/jsonnet-controller/pkg/impersonation"
 	"github.com/pelotech/jsonnet-controller/pkg/jsonnet"
 )

@@ -14,7 +14,7 @@ Copyright 2021 Pelotech - Apache License, Version 2.0.
   - Adaption from fluxcd/kustomize-controller for jsonnet
 */
 
-package v1
+package v1beta1
 
 import (
 	"bytes"

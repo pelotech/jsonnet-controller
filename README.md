@@ -60,7 +60,7 @@ Finally, create a `Konfiguration` for your application:
 
 ```yaml
 # config/samples/whoami-source-controller-konfiguration.yaml
-apiVersion: jsonnet.io/v1
+apiVersion: jsonnet.io/v1beta1
 kind: Konfiguration
 metadata:
   name: whoami
@@ -83,7 +83,7 @@ This may change, but for now you can choose to skip the `sourceRef` and supply a
 The file will be checked for changes at the provided interval.
 
 ```yaml
-apiVersion: jsonnet.io/v1
+apiVersion: jsonnet.io/v1beta1
 kind: Konfiguration
 metadata:
   name: whoami

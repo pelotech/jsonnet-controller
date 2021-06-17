@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1"
+	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1beta1"
 )
 
 // Builder is the main interface for rendering jsonnet to Kubernetes manifests.

@@ -14,7 +14,7 @@ Copyright 2021 Pelotech - Apache License, Version 2.0.
  - Adapted for jsonnet from fluxcd/kustomize-controller
 */
 
-package v1
+package v1beta1
 
 const (
 	// HealthyCondition is the condition type used

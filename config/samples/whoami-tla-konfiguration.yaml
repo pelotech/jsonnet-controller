@@ -1,4 +1,4 @@
-apiVersion: jsonnet.io/v1
+apiVersion: jsonnet.io/v1beta1
 kind: Konfiguration
 metadata:
   name: konfiguration-sample

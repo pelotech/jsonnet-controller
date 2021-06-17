@@ -1,4 +1,4 @@
-apiVersion: jsonnet.io/v1
+apiVersion: jsonnet.io/v1beta1
 kind: Konfiguration
 metadata:
   name: whoami
@@ -13,7 +13,7 @@ spec:
       port: '8080'
   # inject: |
   #   {
-  #     deployment+: { spec+: { replicas: 2 } }
+  #     deployment+: { spec+: { replicas: 2 } },
   #   }
   sourceRef:
     kind: GitRepository

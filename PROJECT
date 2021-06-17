@@ -9,8 +9,7 @@ resources:
     namespaced: true
   controller: true
   domain: jsonnet.io
-  group: apps
   kind: Konfiguration
-  path: github.com/pelotech/jsonnet-controller/api/v1
-  version: v1
+  path: github.com/pelotech/jsonnet-controller/api/v1beta1
+  version: v1beta1
 version: "3"

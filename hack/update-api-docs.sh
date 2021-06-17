@@ -33,11 +33,11 @@ cd "$gitdir"
 "${REPO_ROOT}/bin/refdocs" \
   --config "${REPO_ROOT}/doc/refdocs.json" \
   --template-dir "${REPO_ROOT}/doc/template" \
-  --api-dir "github.com/pelotech/jsonnet-controller/api/v1" \
+  --api-dir "github.com/pelotech/jsonnet-controller/api/v1beta1" \
   --out-file "${GOPATH}/out.html"
 
 md_file="${REPO_ROOT}/doc/konfigurations.md"
 pandoc --from html --to markdown_strict "${GOPATH}/out.html" -o "${md_file}"
-sed -i 's/#jsonnet\.io\/v1\./#/g' "${md_file}"
+sed -i 's/#jsonnet\.io\/v1beta1\./#/g' "${md_file}"
 
 echo "Generated reference documentation"

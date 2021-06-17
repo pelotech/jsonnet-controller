@@ -190,9 +190,9 @@ LDFLAGS ?= -s -w
 
 ##@ CLI
 
-build-jctl: ## Build the CLI to your GOBIN
-	cd cmd/jctl && \
-		CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(GOBIN)/jctl .
+build-konfig: ## Build the CLI to your GOBIN
+	cd cmd/konfig && \
+		CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(GOBIN)/konfig .
 
 GOX ?= $(GOBIN)/gox
 $(GOX):
@@ -201,8 +201,8 @@ $(GOX):
 DIST ?= $(PWD)/dist
 COMPILE_TARGETS ?= "darwin/amd64 linux/amd64 linux/arm linux/arm64 windows/amd64"
 COMPILE_OUTPUT  ?= "$(DIST)/{{.Dir}}_{{.OS}}_{{.Arch}}"
-dist-jctl: $(GOX)  ## Build release artifacts for the CLI
+dist-konfig: $(GOX)  ## Build release artifacts for the CLI
 	mkdir -p dist
-	cd cmd/jctl && \
+	cd cmd/konfig && \
 		CGO_ENABLED=0 $(GOX) -osarch=$(COMPILE_TARGETS) -output=$(COMPILE_OUTPUT) -ldflags="$(LDFLAGS)"
 	upx -9 $(DIST)/*
