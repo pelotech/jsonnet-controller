@@ -118,6 +118,10 @@ var createCmd = &cobra.Command{
 			}
 			createSpec.Spec.Inject = string(inject)
 		}
+		vars := createSpec.Spec.Variables
+		if vars.ExtCode == nil && vars.ExtStr == nil && vars.TLACode == nil && vars.TLAStr == nil {
+			createSpec.Spec.Variables = nil
+		}
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
