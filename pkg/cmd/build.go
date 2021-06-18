@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -63,15 +64,22 @@ var buildCmd = &cobra.Command{
 			},
 		}
 		if len(args) == 0 || args[0] == "-" {
+			stat, err := os.Stdin.Stat()
+			if err != nil {
+				return err
+			}
+			if stat.Mode()&os.ModeNamedPipe == 0 {
+				fmt.Fprintln(os.Stderr, "(reading from stdin)")
+			}
 			args = []string{os.Stdin.Name()}
 		}
-		f, err := os.Open(args[0])
+
+		data, err := ioutil.ReadFile(args[0])
 		if err != nil {
 			return err
 		}
-		defer f.Close()
 
-		r, err := http.NewRequest(http.MethodGet, localAddr, f)
+		r, err := http.NewRequest(http.MethodGet, localAddr, bytes.NewBuffer(data))
 		if err != nil {
 			return err
 		}
