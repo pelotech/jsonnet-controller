@@ -97,7 +97,9 @@ func (v *apiPackage) identifier() string { return fmt.Sprintf("%s/%s", v.apiGrou
 
 func init() {
 	klog.InitFlags(nil)
-	flag.Set("alsologtostderr", "true") // for klog
+	if err := flag.Set("alsologtostderr", "true"); err != nil {
+		panic(err)
+	} // for klog
 	flag.Parse()
 
 	if *flConfig == "" {

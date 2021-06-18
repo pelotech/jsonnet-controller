@@ -1,32 +1,16 @@
-/*
-Copyright 2017 The kubecfg authors
-
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-Copyright 2021 Pelotech
-	- Removed resolveImage function
-*/
-
 package jsonnet
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
 	"regexp"
 	"strings"
 
+	"github.com/Masterminds/semver"
 	jsonnet "github.com/google/go-jsonnet"
 	jsonnetAst "github.com/google/go-jsonnet/ast"
 	goyaml "gopkg.in/yaml.v2"
@@ -36,6 +20,81 @@ import (
 
 // registerNativeFuncs adds kubecfg's native jsonnet functions to provided VM
 func registerNativeFuncs(vm *jsonnet.VM) {
+
+	// Version Compare Functions
+	// https://masterminds.github.io/sprig/semver.html
+
+	vm.NativeFunction(&jsonnet.NativeFunction{
+		Name:   "semver",
+		Params: []jsonnetAst.Identifier{"version"},
+		Func: func(args []interface{}) (res interface{}, err error) {
+			in := args[0].(string)
+			vers, err := semver.NewVersion(in)
+			if err != nil {
+				return
+			}
+			res = map[string]interface{}{
+				"major":       float64(vers.Major()),
+				"minor":       float64(vers.Minor()),
+				"patch":       float64(vers.Patch()),
+				"pre_release": vers.Prerelease(),
+				"metadata":    vers.Metadata(),
+			}
+			return
+		},
+	})
+
+	vm.NativeFunction(&jsonnet.NativeFunction{
+		Name:   "semverCompare",
+		Params: []jsonnetAst.Identifier{"constraint", "version"},
+		Func: func(args []interface{}) (res interface{}, err error) {
+			constraint := args[0].(string)
+			version := args[1].(string)
+			vers, err := semver.NewVersion(version)
+			if err != nil {
+				return
+			}
+			c, err := semver.NewConstraint(constraint)
+			if err != nil {
+				return
+			}
+			return c.Check(vers), nil
+		},
+	})
+
+	// Hashing Functions
+
+	vm.NativeFunction(&jsonnet.NativeFunction{
+		Name:   "sha1Sum",
+		Params: []jsonnetAst.Identifier{"str"},
+		Func: func(args []interface{}) (res interface{}, err error) {
+			in := args[0].(string)
+			h := sha1.New()
+			_, err = h.Write([]byte(in))
+			if err != nil {
+				return
+			}
+			res = fmt.Sprintf("%x", h.Sum(nil))
+			return
+		},
+	})
+
+	vm.NativeFunction(&jsonnet.NativeFunction{
+		Name:   "sha256Sum",
+		Params: []jsonnetAst.Identifier{"str"},
+		Func: func(args []interface{}) (res interface{}, err error) {
+			in := args[0].(string)
+			h := sha256.New()
+			_, err = h.Write([]byte(in))
+			if err != nil {
+				return
+			}
+			res = fmt.Sprintf("%x", h.Sum(nil))
+			return
+		},
+	})
+
+	// JSON/YAML Parsing
 
 	vm.NativeFunction(&jsonnet.NativeFunction{
 		Name:   "parseYaml",
@@ -82,6 +141,8 @@ func registerNativeFuncs(vm *jsonnet.VM) {
 			return string(output), err
 		},
 	})
+
+	// Regex Functions
 
 	vm.NativeFunction(&jsonnet.NativeFunction{
 		Name:   "escapeStringRegex",

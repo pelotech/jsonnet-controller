@@ -42,6 +42,11 @@ type Builder interface {
 	// The restMapper is used to determine if objects are registered with the target API and their
 	// cluster scope. A nil restMapper can be provided to skip this process.
 	Build(ctx context.Context, restMapper meta.RESTMapper, path string) (*BuildOutput, error)
+
+	// Evaluate will evaluate the jsonnet code at the given path, and produce it's raw output.
+	// This method is really only exposed for testing. The Build() method runs this first before
+	// walking and building an output of unstructured objects.
+	Evaluate(path string) (string, error)
 }
 
 // NewBuilder constructs a jsonnet builder according to the konfiguration.
@@ -58,45 +63,48 @@ func NewBuilder(konfig *konfigurationv1.Konfiguration, workdir, cacheDir string)
 	}
 
 	// Configure jsonnet paths in the workdir
-	if paths := konfig.GetJsonnetPaths(); len(paths) > 0 {
-		for _, path := range paths {
-			joined, err := securejoin.SecureJoin(workdir, path)
-			if err != nil {
-				return nil, err
+	if konfig != nil {
+		if paths := konfig.GetJsonnetPaths(); len(paths) > 0 {
+			for _, path := range paths {
+				joined, err := securejoin.SecureJoin(workdir, path)
+				if err != nil {
+					return nil, err
+				}
+				abs, err := filepath.Abs(joined)
+				if err != nil {
+					return nil, err
+				}
+				path = filepath.ToSlash(abs)
+				if path[len(path)-1] != '/' {
+					// trailing slash is important
+					path = path + "/"
+				}
+				searchURLs = append(searchURLs, &url.URL{Scheme: "file", Path: path})
 			}
-			abs, err := filepath.Abs(joined)
-			if err != nil {
-				return nil, err
-			}
-			path = filepath.ToSlash(abs)
-			if path[len(path)-1] != '/' {
-				// trailing slash is important
-				path = path + "/"
-			}
-			searchURLs = append(searchURLs, &url.URL{Scheme: "file", Path: path})
 		}
-	}
 
-	// Configure remote jsonnet paths
-	if urls := konfig.GetJsonnetURLs(); len(urls) > 0 {
-		for _, ustr := range urls {
-			u, err := url.Parse(ustr)
-			if err != nil {
-				return nil, err
+		// Configure remote jsonnet paths
+		if urls := konfig.GetJsonnetURLs(); len(urls) > 0 {
+			for _, ustr := range urls {
+				u, err := url.Parse(ustr)
+				if err != nil {
+					return nil, err
+				}
+				if u.Path[len(u.Path)-1] != '/' {
+					u.Path = u.Path + "/"
+				}
+				searchURLs = append(searchURLs, u)
 			}
-			if u.Path[len(u.Path)-1] != '/' {
-				u.Path = u.Path + "/"
-			}
-			searchURLs = append(searchURLs, u)
 		}
+
+		// Inject any variables into the VM
+		if vars := konfig.GetVariables(); vars != nil {
+			vars.InjectInto(b.vm)
+		}
+
 	}
 
 	b.searchURLs = searchURLs
-
-	// Inject any variables into the VM
-	if vars := konfig.GetVariables(); vars != nil {
-		vars.InjectInto(b.vm)
-	}
 
 	return b, nil
 }
@@ -110,12 +118,8 @@ type builder struct {
 }
 
 func (b *builder) Build(ctx context.Context, restMapper meta.RESTMapper, path string) (*BuildOutput, error) {
-	// Configure the importer
-	log := log.FromContext(ctx)
-	b.vm.Importer(MakeUniversalImporter(log, b.searchURLs, b.cacheDir))
-
 	// Evaluate the jsonnet
-	evaluated, err := b.evaluateJsonnet(path)
+	evaluated, err := b.evaluateJsonnet(ctx, path)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +164,15 @@ func (b *builder) Build(ctx context.Context, restMapper meta.RESTMapper, path st
 	return output, nil
 }
 
-func (b *builder) evaluateJsonnet(path string) (string, error) {
+func (b *builder) Evaluate(path string) (string, error) {
+	return b.evaluateJsonnet(context.Background(), path)
+}
+
+func (b *builder) evaluateJsonnet(ctx context.Context, path string) (string, error) {
+	// Configure the importer
+	log := log.FromContext(ctx)
+	b.vm.Importer(MakeUniversalImporter(log, b.searchURLs, b.cacheDir))
+
 	u, err := url.Parse(path)
 	if err != nil {
 		return "", err
@@ -182,9 +194,9 @@ func (b *builder) evaluateJsonnet(path string) (string, error) {
 	var expr string
 	switch ext {
 	case ".json":
-		expr = fmt.Sprintf(`(import "internal:///kubecfg.libsonnet").parseJson(importstr @'%s')`, quotedPath)
+		expr = fmt.Sprintf(`(import "internal:///lib/kubecfg.libsonnet").parseJson(importstr @'%s')`, quotedPath)
 	case ".yaml":
-		expr = fmt.Sprintf(`(import "internal:///kubecfg.libsonnet").parseYaml(importstr @'%s')`, quotedPath)
+		expr = fmt.Sprintf(`(import "internal:///lib/kubecfg.libsonnet").parseYaml(importstr @'%s')`, quotedPath)
 	case ".jsonnet", ".libsonnet":
 		expr = fmt.Sprintf("(import @'%s')", quotedPath)
 	default:
@@ -193,7 +205,9 @@ func (b *builder) evaluateJsonnet(path string) (string, error) {
 	}
 
 	// Add any user-defined injections
-	expr += b.konfig.GetInjectSnippet()
+	if b.konfig != nil {
+		expr += b.konfig.GetInjectSnippet()
+	}
 
 	output, err := b.vm.EvaluateAnonymousSnippet("", expr)
 	if err != nil {

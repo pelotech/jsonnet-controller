@@ -3,6 +3,7 @@ module github.com/pelotech/jsonnet-controller
 go 1.16
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/evanphx/json-patch v4.11.0+incompatible

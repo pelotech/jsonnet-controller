@@ -80,7 +80,7 @@ docker-push: ## Push docker image with the manager.
 
 REFDOCS = $(CURDIR)/bin/refdocs
 $(REFDOCS):
-	cd hack && go build -o $(REFDOCS) .
+	cd hack/gen-crd-reference-docs && go build -o $(REFDOCS) .
 
 api-docs: $(REFDOCS)  ## Generate API documentation
 	go mod vendor

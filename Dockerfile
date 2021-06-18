@@ -22,7 +22,7 @@ COPY controllers/ controllers/
 COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="-s -w" -a -o manager main.go \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -tags netgo -ldflags="-s -w" -a -o manager main.go \
         && upx -9 manager
 
 # Use distroless as minimal base image to package the manager binary
