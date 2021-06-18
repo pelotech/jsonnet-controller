@@ -12,11 +12,10 @@ spec:
       name: 'whoami'
     extCode:
       port: '8080'
-  inject: |
-    {
-      deployment+: { spec+: { replicas: 2 } },
-      service+: { spec+: { clusterIP: 'None' } }
-    }
+  # inject: |
+  #   {
+  #     deployment+: { spec+: { replicas: 2 } }
+  #   }
   sourceRef:
     kind: GitRepository
     name: jsonnet-samples
