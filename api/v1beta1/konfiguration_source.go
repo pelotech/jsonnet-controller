@@ -20,41 +20,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// CrossNamespaceSourceReference contains enough information to let you locate the
-// typed referenced object at cluster level
-type CrossNamespaceSourceReference struct {
-	// API version of the referent
-	// +optional
-	APIVersion string `json:"apiVersion,omitempty"`
-
-	// Kind of the referent
-	// +kubebuilder:validation:Enum=GitRepository;Bucket
-	// +required
-	Kind string `json:"kind"`
-
-	// Name of the referent
-	// +required
-	Name string `json:"name"`
-
-	// Namespace of the referent, defaults to the Konfiguration namespace
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
-}
-
-func (sref *CrossNamespaceSourceReference) String() string {
-	if sref.Namespace != "" {
-		return fmt.Sprintf("%s/%s/%s", sref.Kind, sref.Namespace, sref.Name)
-	}
-	return fmt.Sprintf("%s/%s", sref.Kind, sref.Name)
-}
-
-func (sref *CrossNamespaceSourceReference) GetSource(ctx context.Context, c client.Client) (sourcev1.Source, error) {
+func GetSource(ctx context.Context, c client.Client, sref *meta.NamespacedObjectKindReference) (sourcev1.Source, error) {
 	var source sourcev1.Source
 	namespacedName := types.NamespacedName{
 		Namespace: sref.Namespace,

@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"github.com/fluxcd/pkg/apis/meta"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -78,7 +80,7 @@ var createCmd = &cobra.Command{
 			if sourceNamespace == "" {
 				sourceNamespace = createSpec.Namespace
 			}
-			createSpec.Spec.SourceRef = &konfigurationv1.CrossNamespaceSourceReference{
+			createSpec.Spec.SourceRef = &meta.NamespacedObjectKindReference{
 				Kind:      "GitRepository",
 				Name:      sourceName,
 				Namespace: sourceNamespace,

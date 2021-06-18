@@ -50,14 +50,13 @@ func (r *KonfigurationReconciler) prepareSource(ctx context.Context, konfig *kon
 	if sourceRef := konfig.GetSourceRef(); sourceRef != nil {
 		var source sourcev1.Source
 
-		source, err = sourceRef.GetSource(ctx, r.Client)
+		source, err = konfigurationv1.GetSource(ctx, r.Client, sourceRef)
 		if err != nil {
-			msg := fmt.Sprintf("Source '%s' not found", konfig.Spec.SourceRef.String())
+			msg := fmt.Sprintf("Could not retrieve source '%s/%s/%s': %s", sourceRef.Kind, sourceRef.Namespace, sourceRef.Name, err.Error())
 			reqLogger.Info(msg)
 			if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta("", konfigurationv1.ArtifactFailedReason, msg)); statusErr != nil {
 				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
 			}
-			reqLogger.Error(err, "Failed to fetch source for Konfiguration")
 			return
 		}
 

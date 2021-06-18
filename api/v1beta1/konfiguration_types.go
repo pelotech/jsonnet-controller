@@ -81,7 +81,7 @@ type KonfigurationSpec struct {
 
 	// Reference of the source where the jsonnet, json, or yaml file(s) are.
 	// +optional
-	SourceRef *CrossNamespaceSourceReference `json:"sourceRef,omitempty"`
+	SourceRef *meta.NamespacedObjectKindReference `json:"sourceRef,omitempty"`
 
 	// Prune enables garbage collection. This means that when newly rendered
 	// jsonnet does not contain objects that were applied previously, they will

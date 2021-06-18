@@ -9,51 +9,6 @@ this as an API
 
 Resource Types:
 
-### CrossNamespaceSourceReference
-
-(*Appears
-on:*[KonfigurationSpec](#KonfigurationSpec))
-
-CrossNamespaceSourceReference contains enough information to let you
-locate the typed referenced object at cluster level
-
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>apiVersion</code><br />
-<em>string</em></td>
-<td><em>(Optional)</em>
-<p>API version of the referent</p></td>
-</tr>
-<tr class="even">
-<td><code>kind</code><br />
-<em>string</em></td>
-<td><p>Kind of the referent</p></td>
-</tr>
-<tr class="odd">
-<td><code>name</code><br />
-<em>string</em></td>
-<td><p>Name of the referent</p></td>
-</tr>
-<tr class="even">
-<td><code>namespace</code><br />
-<em>string</em></td>
-<td><em>(Optional)</em>
-<p>Namespace of the referent, defaults to the Konfiguration namespace</p></td>
-</tr>
-</tbody>
-</table>
-
 ### Konfiguration
 
 Konfiguration is the Schema for the konfigurations API
@@ -147,7 +102,7 @@ Konfiguration is the Schema for the konfigurations API
 </tr>
 <tr class="odd">
 <td><code>sourceRef</code><br />
-<em><a href="#CrossNamespaceSourceReference">CrossNamespaceSourceReference</a></em></td>
+<em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#NamespacedObjectKindReference">FluxCD apis/meta.NamespacedObjectKindReference</a></em></td>
 <td><em>(Optional)</em>
 <p>Reference of the source where the jsonnet, json, or yaml file(s) are.</p></td>
 </tr>
@@ -275,7 +230,7 @@ KonfigurationSpec defines the desired state of a Konfiguration
 </tr>
 <tr class="odd">
 <td><code>sourceRef</code><br />
-<em><a href="#CrossNamespaceSourceReference">CrossNamespaceSourceReference</a></em></td>
+<em><a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#NamespacedObjectKindReference">FluxCD apis/meta.NamespacedObjectKindReference</a></em></td>
 <td><em>(Optional)</em>
 <p>Reference of the source where the jsonnet, json, or yaml file(s) are.</p></td>
 </tr>
@@ -541,4 +496,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `fb3125e`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `b1b9e81`.*

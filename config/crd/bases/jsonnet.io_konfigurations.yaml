@@ -176,20 +176,18 @@ spec:
                   file(s) are.
                 properties:
                   apiVersion:
-                    description: API version of the referent
+                    description: API version of the referent, if not specified the
+                      Kubernetes preferred version will be used
                     type: string
                   kind:
                     description: Kind of the referent
-                    enum:
-                    - GitRepository
-                    - Bucket
                     type: string
                   name:
                     description: Name of the referent
                     type: string
                   namespace:
-                    description: Namespace of the referent, defaults to the Konfiguration
-                      namespace
+                    description: Namespace of the referent, when not specified it
+                      acts as LocalObjectReference
                     type: string
                 required:
                 - kind

@@ -157,7 +157,7 @@ func (k *Konfiguration) GetHealthChecks() []meta.NamespacedObjectKindReference {
 }
 
 // GetSourceRef returns the source ref for this konfiguration.
-func (k *Konfiguration) GetSourceRef() *CrossNamespaceSourceReference {
+func (k *Konfiguration) GetSourceRef() *meta.NamespacedObjectKindReference {
 	if k.Spec.SourceRef != nil {
 		if k.Spec.SourceRef.Namespace == "" {
 			k.Spec.SourceRef.Namespace = k.GetNamespace()
