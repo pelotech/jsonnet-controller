@@ -21,7 +21,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -47,7 +49,8 @@ var createSpec = konfigurationv1.Konfiguration{
 }
 
 var konfigKubeConfig string
-var sourceName, sourceNamespace string
+var sourceKind, sourceName, sourceNamespace string
+var injectFile string
 var createExport bool
 
 func init() {
@@ -56,6 +59,7 @@ func init() {
 	flags.StringVarP(&createSpec.Spec.Path, "path", "p", "/", "the path to the jsonnet to reconcile")
 	flags.StringVar(&sourceName, "source-name", "", "the name of the GitRepository containing the jsonnet code")
 	flags.StringVar(&sourceNamespace, "source-namespace", "", "the namespace of the GitRepository containing the jsonnet code (defaults to the creation namespace)")
+	flags.StringVar(&sourceKind, "source-kind", "GitRepository", "the kind of source provided by --source-name.")
 
 	flags.StringVarP(&createSpec.Namespace, "namespace", "n", "default", "The namespace to create the resource")
 	flags.DurationVar(&createSpec.Spec.Interval.Duration, "interval", time.Minute*5, "the interval to reconcile the konfiguration")
@@ -68,7 +72,7 @@ func init() {
 	flags.StringToStringVar(&createSpec.Spec.Variables.ExtCode, "ext-code", nil, "external variables declared as jsonnet code")
 	flags.StringToStringVar(&createSpec.Spec.Variables.TLAStr, "tla-str", nil, "top-level arguments declared as strings")
 	flags.StringToStringVar(&createSpec.Spec.Variables.TLACode, "tla-code", nil, "top-level arguments declared as jsonnet code")
-	flags.StringVar(&createSpec.Spec.Inject, "inject", "", "a file containing jsonnet code to inject at the end of the evaluation")
+	flags.StringVar(&injectFile, "inject", "", "a file containing jsonnet code to inject at the end of the evaluation")
 
 	flags.StringVar(&konfigKubeConfig, "kubeconfig-secret", "", "a secret contaning a 'value' with a kubeconfig to use for this konfiguration")
 	flags.StringVar(&createSpec.Spec.ServiceAccountName, "service-account", "", "a service account to impersonate for this konfiguration")
@@ -76,7 +80,7 @@ func init() {
 	flag.BoolVar(&createSpec.Spec.Suspend, "suspended", false, "whether to start the konfiguration suspended")
 	flag.BoolVar(&createSpec.Spec.Validate, "validate", false, "whether to validate resources against the server schema before applying")
 
-	flags.BoolVar(&createExport, "export", false, "don't create the konfiguration dump it's contents to stdout")
+	flags.BoolVar(&createExport, "export", false, "don't create the konfiguration, dump it's contents to stdout (e.g. to pipe to build)")
 
 	rootCmd.AddCommand(createCmd)
 }
@@ -89,15 +93,15 @@ var createCmd = &cobra.Command{
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		createSpec.Name = args[0]
 
-		if createSpec.Spec.Path == "/" && sourceName == "" {
-			return errors.New("you must specify a full HTTP URL for --path when not providing a --source-name and/or --source-namespace")
+		if !strings.HasPrefix(createSpec.Spec.Path, "http") && sourceName == "" {
+			return errors.New("you must specify a full HTTP URL for --path when not providing a --source-name")
 		}
 		if sourceName != "" {
 			if sourceNamespace == "" {
 				sourceNamespace = createSpec.Namespace
 			}
 			createSpec.Spec.SourceRef = &meta.NamespacedObjectKindReference{
-				Kind:      "GitRepository",
+				Kind:      sourceKind,
 				Name:      sourceName,
 				Namespace: sourceNamespace,
 			}
@@ -114,6 +118,13 @@ var createCmd = &cobra.Command{
 					Name: konfigKubeConfig,
 				},
 			}
+		}
+		if injectFile != "" {
+			inject, err := ioutil.ReadFile(injectFile)
+			if err != nil {
+				return err
+			}
+			createSpec.Spec.Inject = string(inject)
 		}
 		return nil
 	},

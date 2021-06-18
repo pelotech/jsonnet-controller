@@ -44,7 +44,6 @@ func init() {
 }
 
 var kubeconfig string
-
 var restConfig *rest.Config
 var k8sClient client.Client
 var serializer *json.Serializer
