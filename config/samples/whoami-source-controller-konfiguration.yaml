@@ -6,15 +6,17 @@ spec:
   interval: 30s
   path: config/jsonnet/whoami.jsonnet
   prune: true
+  force: true
   variables:
     extStr:
       name: 'whoami'
     extCode:
       port: '8080'
-  # inject: |
-  #   {
-  #     deployment+: { spec+: { replicas: 2 } },
-  #   }
+  inject: |
+    {
+      deployment+: { spec+: { replicas: 2 } },
+      service+: { spec+: { clusterIP: 'None' } }
+    }
   sourceRef:
     kind: GitRepository
     name: jsonnet-samples
