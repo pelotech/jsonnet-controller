@@ -57,8 +57,8 @@ func init() {
 	flags := createCmd.Flags()
 
 	flags.StringVarP(&createSpec.Spec.Path, "path", "p", "/", "the path to the jsonnet to reconcile")
-	flags.StringVar(&sourceName, "source-name", "", "the name of the GitRepository containing the jsonnet code")
-	flags.StringVar(&sourceNamespace, "source-namespace", "", "the namespace of the GitRepository containing the jsonnet code (defaults to the creation namespace)")
+	flags.StringVar(&sourceName, "source-name", "", "the name of the source object containing the jsonnet code")
+	flags.StringVar(&sourceNamespace, "source-namespace", "", "the namespace of the source object containing the jsonnet code (defaults to the creation namespace)")
 	flags.StringVar(&sourceKind, "source-kind", "GitRepository", "the kind of source provided by --source-name.")
 
 	flags.StringVarP(&createSpec.Namespace, "namespace", "n", "default", "The namespace to create the resource")
