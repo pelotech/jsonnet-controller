@@ -19,7 +19,6 @@ package cmd
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -47,40 +46,37 @@ var createSpec = konfigurationv1.Konfiguration{
 		Variables:     &konfigurationv1.Variables{},
 	},
 }
+var sourceRef = meta.NamespacedObjectKindReference{}
 
 var konfigKubeConfig string
-var sourceKind, sourceName, sourceNamespace string
 var injectFile string
 var createExport bool
 
 func init() {
-	flags := createCmd.Flags()
+	createFlags := createCmd.Flags()
 
-	flags.StringVarP(&createSpec.Spec.Path, "path", "p", "/", "the path to the jsonnet to reconcile")
-	flags.StringVar(&sourceName, "source-name", "", "the name of the source object containing the jsonnet code")
-	flags.StringVar(&sourceNamespace, "source-namespace", "", "the namespace of the source object containing the jsonnet code (defaults to the creation namespace)")
-	flags.StringVar(&sourceKind, "source-kind", "GitRepository", "the kind of source provided by --source-name.")
+	createFlags.StringVarP(&createSpec.Spec.Path, "path", "p", "/", "the path to the jsonnet to reconcile")
+	createFlags.StringVar(&sourceRef.Name, "source-name", "", "the name of the source object containing the jsonnet code")
+	createFlags.StringVar(&sourceRef.Namespace, "source-namespace", "", "the namespace of the source object containing the jsonnet code (defaults to the creation namespace)")
+	createFlags.StringVar(&sourceRef.Kind, "source-kind", "GitRepository", "the kind of source provided by --source-name.")
+	createFlags.StringVarP(&createSpec.Namespace, "namespace", "n", "default", "The namespace to create the resource")
+	createFlags.DurationVar(&createSpec.Spec.Interval.Duration, "interval", time.Minute*5, "the interval to reconcile the konfiguration")
+	createFlags.DurationVar(&createSpec.Spec.RetryInterval.Duration, "retry-interval", time.Duration(0), "the interval to reconcile the konfiguration")
+	createFlags.DurationVar(&createSpec.Spec.Timeout.Duration, "timeout", time.Duration(0), "the timeout for konfiguration reconcile attempts")
+	createFlags.StringArrayVar(&createSpec.Spec.JsonnetPaths, "jsonnet-path", nil, "jsonnet paths to include in the invocation")
+	createFlags.StringArrayVar(&createSpec.Spec.JsonnetURLs, "jsonnet-url", nil, "jsonnet urls to include in the invocation")
+	createFlags.StringToStringVar(&createSpec.Spec.Variables.ExtStr, "ext-str", nil, "external variables declared as strings")
+	createFlags.StringToStringVar(&createSpec.Spec.Variables.ExtCode, "ext-code", nil, "external variables declared as jsonnet code")
+	createFlags.StringToStringVar(&createSpec.Spec.Variables.TLAStr, "tla-str", nil, "top-level arguments declared as strings")
+	createFlags.StringToStringVar(&createSpec.Spec.Variables.TLACode, "tla-code", nil, "top-level arguments declared as jsonnet code")
+	createFlags.StringVar(&injectFile, "inject", "", "a file containing jsonnet code to inject at the end of the evaluation")
+	createFlags.StringVar(&konfigKubeConfig, "kubeconfig-secret", "", "a secret contaning a 'value' with a kubeconfig to use for this konfiguration")
+	createFlags.StringVar(&createSpec.Spec.ServiceAccountName, "service-account", "", "a service account to impersonate for this konfiguration")
+	createFlags.BoolVar(&createSpec.Spec.Prune, "prune", false, "whether to garbage collect orphaned resources")
+	createFlags.BoolVar(&createSpec.Spec.Suspend, "suspended", false, "whether to start the konfiguration suspended")
+	createFlags.BoolVar(&createSpec.Spec.Validate, "validate", false, "whether to validate resources against the server schema before applying")
 
-	flags.StringVarP(&createSpec.Namespace, "namespace", "n", "default", "The namespace to create the resource")
-	flags.DurationVar(&createSpec.Spec.Interval.Duration, "interval", time.Minute*5, "the interval to reconcile the konfiguration")
-	flags.DurationVar(&createSpec.Spec.RetryInterval.Duration, "retry-interval", time.Duration(0), "the interval to reconcile the konfiguration")
-	flags.DurationVar(&createSpec.Spec.Timeout.Duration, "timeout", time.Duration(0), "the timeout for konfiguration reconcile attempts")
-	flags.StringArrayVar(&createSpec.Spec.JsonnetPaths, "jsonnet-path", nil, "jsonnet paths to include in the invocation")
-	flags.StringArrayVar(&createSpec.Spec.JsonnetURLs, "jsonnet-url", nil, "jsonnet urls to include in the invocation")
-
-	flags.StringToStringVar(&createSpec.Spec.Variables.ExtStr, "ext-str", nil, "external variables declared as strings")
-	flags.StringToStringVar(&createSpec.Spec.Variables.ExtCode, "ext-code", nil, "external variables declared as jsonnet code")
-	flags.StringToStringVar(&createSpec.Spec.Variables.TLAStr, "tla-str", nil, "top-level arguments declared as strings")
-	flags.StringToStringVar(&createSpec.Spec.Variables.TLACode, "tla-code", nil, "top-level arguments declared as jsonnet code")
-	flags.StringVar(&injectFile, "inject", "", "a file containing jsonnet code to inject at the end of the evaluation")
-
-	flags.StringVar(&konfigKubeConfig, "kubeconfig-secret", "", "a secret contaning a 'value' with a kubeconfig to use for this konfiguration")
-	flags.StringVar(&createSpec.Spec.ServiceAccountName, "service-account", "", "a service account to impersonate for this konfiguration")
-	flags.BoolVar(&createSpec.Spec.Prune, "prune", false, "whether to garbage collect orphaned resources")
-	flag.BoolVar(&createSpec.Spec.Suspend, "suspended", false, "whether to start the konfiguration suspended")
-	flag.BoolVar(&createSpec.Spec.Validate, "validate", false, "whether to validate resources against the server schema before applying")
-
-	flags.BoolVar(&createExport, "export", false, "don't create the konfiguration, dump it's contents to stdout (e.g. to pipe to build)")
+	createFlags.BoolVar(&createExport, "export", false, "don't create the konfiguration, dump it's contents to stdout (e.g. to pipe to build)")
 
 	rootCmd.AddCommand(createCmd)
 }
@@ -93,18 +89,14 @@ var createCmd = &cobra.Command{
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		createSpec.Name = args[0]
 
-		if !strings.HasPrefix(createSpec.Spec.Path, "http") && sourceName == "" {
+		if !strings.HasPrefix(createSpec.Spec.Path, "http") && sourceRef.Name == "" {
 			return errors.New("you must specify a full HTTP URL for --path when not providing a --source-name")
 		}
-		if sourceName != "" {
-			if sourceNamespace == "" {
-				sourceNamespace = createSpec.Namespace
+		if sourceRef.Name != "" {
+			if sourceRef.Namespace == "" {
+				sourceRef.Namespace = createSpec.Namespace
 			}
-			createSpec.Spec.SourceRef = &meta.NamespacedObjectKindReference{
-				Kind:      sourceKind,
-				Name:      sourceName,
-				Namespace: sourceNamespace,
-			}
+			createSpec.Spec.SourceRef = &sourceRef
 		}
 		if createSpec.Spec.RetryInterval.Duration == 0 {
 			createSpec.Spec.RetryInterval = nil
