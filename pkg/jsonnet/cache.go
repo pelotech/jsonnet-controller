@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/go-logr/logr"
 	jsonnet "github.com/google/go-jsonnet"
@@ -100,6 +101,9 @@ func (h *httpCache) Get(url string) (jsonnet.Contents, error) {
 	// If this is an internal URL make sure it is rooted
 	if isInt {
 		url = intRegex.ReplaceAllString(url, "internal:///$1")
+		if strings.HasSuffix(url, "kubecfg.libsonnet") {
+			url = "internal:///lib/kubecfg.libsonnet"
+		}
 	}
 
 	// Attempt a normal GET
