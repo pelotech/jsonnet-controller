@@ -353,27 +353,52 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 	// Create a resource manager for the konfiguration
 	manager := resources.NewResourceManager(kubeClient, konfig)
 
-	// Reconcile resources from the output
-	if changeset, err := manager.Reconcile(ctx, snapshot, manifests); err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
-			revision, meta.ReconciliationFailedReason, err.Error()),
-		); statusErr != nil {
-			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+	// Assume a reconcile is required, but if validation is enabled we may determine
+	// that it is not.
+	reconcileRequired := true
+
+	// Do a dry-run first - this should be improved
+	// However, if changeset is returned as empty from this - then we know we can skip
+	// a full reconcilation.
+	if konfig.ShouldValidate() {
+		var changeset string
+		if changeset, err = manager.Reconcile(ctx, snapshot, manifests, true); err != nil {
+			if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
+				revision, meta.ReconciliationFailedReason, err.Error()),
+			); statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+			}
+			r.event(ctx, konfig, &EventData{
+				Revision: revision,
+				Severity: events.EventSeverityError,
+				Message:  changeset,
+			})
+			return nil, fmt.Errorf("failed to dry-run reconcile manifests: %w", err)
 		}
-		r.event(ctx, konfig, &EventData{
-			Revision: revision,
-			Severity: events.EventSeverityError,
-			Message:  changeset,
-			Metadata: map[string]string{},
-		})
-		return nil, fmt.Errorf("failed to reconcile manifests: %w", err)
-	} else if changeset != "" {
-		r.event(ctx, konfig, &EventData{
-			Revision: revision,
-			Severity: events.EventSeverityInfo,
-			Message:  changeset,
-			Metadata: map[string]string{},
-		})
+		reconcileRequired = changeset != ""
+	}
+
+	// Reconcile resources from the output if needed
+	if reconcileRequired {
+		if changeset, err := manager.Reconcile(ctx, snapshot, manifests, false); err != nil {
+			if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
+				revision, meta.ReconciliationFailedReason, err.Error()),
+			); statusErr != nil {
+				reqLogger.Error(statusErr, "Failed to update Konfiguration status")
+			}
+			r.event(ctx, konfig, &EventData{
+				Revision: revision,
+				Severity: events.EventSeverityError,
+				Message:  changeset,
+			})
+			return nil, fmt.Errorf("failed to reconcile manifests: %w", err)
+		} else if changeset != "" {
+			r.event(ctx, konfig, &EventData{
+				Revision: revision,
+				Severity: events.EventSeverityInfo,
+				Message:  changeset,
+			})
+		}
 	}
 
 	// Prune any orphaned resources if enabled
@@ -389,7 +414,6 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 				Revision: revision,
 				Severity: events.EventSeverityError,
 				Message:  changeset,
-				Metadata: map[string]string{},
 			})
 			return nil, fmt.Errorf(msg)
 		} else if changeset != "" {
@@ -397,7 +421,6 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 				Revision: revision,
 				Severity: events.EventSeverityInfo,
 				Message:  changeset,
-				Metadata: map[string]string{},
 			})
 		}
 	}

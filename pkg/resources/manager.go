@@ -49,17 +49,13 @@ type Reconcilee interface {
 	// ForceCreate should return whether objects should be deleted and recreated
 	// for things such as immutable field changes.
 	ForceCreate() bool
-	// ShouldValidate should return whether objects should be validated with a dry-run
-	// before creation or updating.
-	// TODO: This just triggers a dry-run first, should be more intelligent
-	ShouldValidate() bool
 }
 
 // Manager is the main interface for reconciling resources from built manifests.
 type Manager interface {
 	// Reconcile will reconcile the provided manifest of one or more objects with
 	// the API server. The snapshot provided must match the manifest.
-	Reconcile(ctx context.Context, snapshot *konfigurationv1.Snapshot, manifest []byte) (changeSet string, err error)
+	Reconcile(ctx context.Context, snapshot *konfigurationv1.Snapshot, manifest []byte, dryRun bool) (changeSet string, err error)
 	// Prune will attempt to garbage-collect resources represented in the lastSnapshot that
 	// were not created in the newSnapshot.
 	Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigurationv1.Snapshot) (changeSet string, success bool)
@@ -77,7 +73,7 @@ type manager struct {
 	parent Reconcilee
 }
 
-func (m *manager) Reconcile(ctx context.Context, snapshot *konfigurationv1.Snapshot, manifest []byte) (changeSet string, err error) {
+func (m *manager) Reconcile(ctx context.Context, snapshot *konfigurationv1.Snapshot, manifest []byte, dryRun bool) (changeSet string, err error) {
 	log := log.FromContext(ctx)
 
 	reconcileCtx, cancel := context.WithTimeout(ctx, m.parent.GetTimeout())
@@ -107,7 +103,7 @@ func (m *manager) Reconcile(ctx context.Context, snapshot *konfigurationv1.Snaps
 		if toReconcile.IsList() {
 			err = toReconcile.EachListItem(func(item runtime.Object) error {
 				obj := item.(*unstructured.Unstructured)
-				thischange, err = m.reconcileUnstructured(reconcileCtx, log, obj, snapshot.Checksum)
+				thischange, err = m.reconcileUnstructured(reconcileCtx, log, obj, snapshot.Checksum, dryRun)
 				if thischange != "" {
 					changeSet += thischange
 				}
@@ -121,7 +117,7 @@ func (m *manager) Reconcile(ctx context.Context, snapshot *konfigurationv1.Snaps
 		}
 
 		// Reconcile the object
-		thischange, err = m.reconcileUnstructured(reconcileCtx, log, toReconcile, snapshot.Checksum)
+		thischange, err = m.reconcileUnstructured(reconcileCtx, log, toReconcile, snapshot.Checksum, dryRun)
 		if thischange != "" {
 			changeSet += thischange
 		}
@@ -249,9 +245,10 @@ func (m *manager) Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigur
 	return
 }
 
-func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, obj *unstructured.Unstructured, fullChecksum string) (string, error) {
+func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, obj *unstructured.Unstructured, fullChecksum string, dryRun bool) (string, error) {
 	nn := client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	id := fmt.Sprintf("%s/%s", obj.GetKind(), nn.String())
+	log = log.WithValues("DryRun", dryRun)
 
 	// Set the garbage collection labels on the object.
 	// This needs to happen before computing the checksum for the object as it will ensure
@@ -287,12 +284,7 @@ func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, ob
 		if client.IgnoreNotFound(err) == nil {
 			// The object doesn't exist, create it
 			log.Info(fmt.Sprintf("Creating %s '%s'", obj.GetKind(), nn.String()))
-			if m.parent.ShouldValidate() {
-				if err := m.serverSideApply(ctx, log, obj, true, true); err != nil {
-					return fmt.Sprintf("create failed for '%s' (dry-run): %s\n", id, err.Error()), err
-				}
-			}
-			if err := m.serverSideApply(ctx, log, obj, true, false); err != nil {
+			if err := m.serverSideApply(ctx, log, obj, true, dryRun); err != nil {
 				return fmt.Sprintf("create failed for '%s': %s\n", id, err.Error()), err
 			}
 			return fmt.Sprintf("%s created\n", id), nil
@@ -307,14 +299,14 @@ func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, ob
 	if foundAnnotations == nil {
 		// No annotations - we need to patch the object
 		log.Info(fmt.Sprintf("Existing %s '%s' has no annotations, updating", obj.GetKind(), nn.String()))
-		return m.patch(ctx, log, found, obj, id)
+		return m.patch(ctx, log, found, obj, id, dryRun)
 	}
 
 	foundChecksum, ok := foundAnnotations[konfigurationv1.LastAppliedConfigAnnotation]
 	if !ok {
 		// No checksum annotation - we need to patch the object
 		log.Info(fmt.Sprintf("Existing %s '%s' has no last-applied-checksum annotation, updating", obj.GetKind(), nn.String()))
-		return m.patch(ctx, log, found, obj, id)
+		return m.patch(ctx, log, found, obj, id, dryRun)
 	}
 
 	// Check if checksum has changed - this is easier then doing a diff and will tell us
@@ -322,7 +314,7 @@ func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, ob
 	if foundChecksum != checksum {
 		log.Info(fmt.Sprintf("%s '%s' definition has a new checksum, updating", obj.GetKind(), nn.String()),
 			"OldChecksum", foundChecksum, "NewChecksum", checksum)
-		return m.patch(ctx, log, found, obj, id)
+		return m.patch(ctx, log, found, obj, id, dryRun)
 	}
 
 	// Do a full diff - this will attempt to detect drift
@@ -330,20 +322,15 @@ func (m *manager) reconcileUnstructured(ctx context.Context, log logr.Logger, ob
 		return fmt.Sprintf("computing diff failed for '%s': %s\n", id, err.Error()), err
 	} else if res.Modified {
 		log.Info(fmt.Sprintf("%s '%s' definition has drifted, updating", obj.GetKind(), nn.String()))
-		return m.patch(ctx, log, found, obj, id)
+		return m.patch(ctx, log, found, obj, id, dryRun)
 	}
 
 	log.Info(fmt.Sprintf("%s '%s' is up to date", obj.GetKind(), nn.String()))
 	return "", nil
 }
 
-func (m *manager) patch(ctx context.Context, log logr.Logger, old, new *unstructured.Unstructured, id string) (string, error) {
-	if m.parent.ShouldValidate() {
-		if err := m.serverSideApply(ctx, log, new, false, true); err != nil {
-			return fmt.Sprintf("update failed for '%s' (dry-run): %s\n", id, err.Error()), err
-		}
-	}
-	if err := m.serverSideApply(ctx, log, new, false, false); err != nil {
+func (m *manager) patch(ctx context.Context, log logr.Logger, old, new *unstructured.Unstructured, id string, dryRun bool) (string, error) {
+	if err := m.serverSideApply(ctx, log, new, false, dryRun); err != nil {
 		return fmt.Sprintf("update failed for '%s': %s\n", id, err.Error()), err
 	}
 	return fmt.Sprintf("%s configured\n", id), nil
@@ -359,11 +346,9 @@ func (m *manager) serverSideApply(ctx context.Context, log logr.Logger, obj *uns
 		err := m.Patch(ctx, toCreate, client.Apply, append(opts, client.DryRunAll)...)
 		if err != nil && !new && apierrors.IsInvalid(err) && m.parent.ForceCreate() {
 			if _, ok := apierrors.StatusCause(err, metav1.CauseTypeFieldValueInvalid); ok {
-				log.Info(fmt.Sprintf("Will delete and recreate %s/%s/%s", obj.GetKind(), obj.GetNamespace(), obj.GetName()))
-				if err := m.Delete(ctx, toCreate); err != nil {
-					return err
-				}
-				return m.serverSideApply(ctx, log, obj, new, dryRun)
+				msg := fmt.Sprintf("Will delete and recreate %s/%s/%s", obj.GetKind(), obj.GetNamespace(), obj.GetName())
+				log.Info(msg)
+				return nil
 			}
 		}
 		return err
