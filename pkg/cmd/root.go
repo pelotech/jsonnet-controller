@@ -75,7 +75,7 @@ func initClient() {
 	if kubeconfig == "" {
 		usr, err := user.Current()
 		if err != nil {
-			fmt.Fprint(os.Stderr, "ERROR: Fatal could not determine current user's home directory:", err.Error())
+			fmt.Fprintln(os.Stderr, "ERROR: Could not determine current user's home directory:", err.Error())
 			os.Exit(1)
 		}
 		kubeconfig = filepath.Join(usr.HomeDir, ".kube", "config")
@@ -83,19 +83,19 @@ func initClient() {
 
 	kbytes, err := ioutil.ReadFile(kubeconfig)
 	if err != nil {
-		fmt.Fprint(os.Stderr, "Could not read", kubeconfig, ":", err.Error())
+		fmt.Fprintln(os.Stderr, "ERROR: Could not read", kubeconfig, ":", err.Error())
 		os.Exit(1)
 	}
 
 	restConfig, err = clientcmd.RESTConfigFromKubeConfig(kbytes)
 	if err != nil {
-		fmt.Fprint(os.Stderr, "Could not create a REST config from", kubeconfig, ":", err.Error())
+		fmt.Fprintln(os.Stderr, "ERROR: Could not create a REST config from", kubeconfig, ":", err.Error())
 		os.Exit(1)
 	}
 
 	restMapper, err := apiutil.NewDynamicRESTMapper(restConfig)
 	if err != nil {
-		fmt.Fprint(os.Stderr, "Could not setup a REST Mapper from", kubeconfig, ":", err.Error())
+		fmt.Fprintln(os.Stderr, "ERROR: Could not setup a REST Mapper from", kubeconfig, ":", err.Error())
 		os.Exit(1)
 	}
 
@@ -104,7 +104,7 @@ func initClient() {
 		Scheme: scheme,
 	})
 	if err != nil {
-		fmt.Fprint(os.Stderr, "Failed to configure a Kubernetes client:", err.Error())
+		fmt.Fprintln(os.Stderr, "ERROR: Failed to configure a Kubernetes client:", err.Error())
 		os.Exit(1)
 	}
 }
