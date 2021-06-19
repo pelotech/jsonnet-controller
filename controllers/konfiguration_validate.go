@@ -33,6 +33,8 @@ import (
 	"github.com/pelotech/jsonnet-controller/pkg/jsonnet"
 )
 
+// DryRunFunc returns the http handler for checking what a given Konfiguration
+// would produce.
 func (r *KonfigurationReconciler) DryRunFunc() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, cancel := context.WithTimeout(context.Background(), r.dryRunTimeout)

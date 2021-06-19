@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// ObjectSorter is a list of unstructured objects that satisfies the Sort interface.
 type ObjectSorter []*unstructured.Unstructured
 
 func (o ObjectSorter) Len() int      { return len(o) }

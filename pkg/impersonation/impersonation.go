@@ -18,6 +18,9 @@ Copyright 2021 Pelotech - Apache License, Version 2.0.
     - Caches kubeconfigs and serviceaccount tokens for subsequent calls
 	- Standalone package operating on interfaces
 */
+
+// Package impersonation contains an interface for impersonating different kubernetes
+// clients based on the spec of a custom resource.
 package impersonation
 
 import (

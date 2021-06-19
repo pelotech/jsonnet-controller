@@ -22,12 +22,12 @@ const (
 	BucketIndexKey string = ".metadata.bucket"
 )
 
-// The FieldOwner used for Server-Side Apply.
+// ServerSideApplyOwner is the FieldOwner used for Server-Side Apply.
 const ServerSideApplyOwner = "jsonnet-controller"
 
 const (
-	// The annotation added to objects containing the checksum of their last
-	// applied configuration. Used to check if a patch is required.
+	// LastAppliedConfigAnnotation isthe annotation added to objects containing the checksum
+	// of their last applied configuration. Used to check if a patch is required.
 	LastAppliedConfigAnnotation string = "jsonnet.io/last-applied-checksum"
 
 	// KonfigurationNameLabel is the label added to objects to denote the Konfiguration
@@ -51,5 +51,5 @@ const (
 	PruningDisabledValue string = "disabled"
 )
 
-// KongifurationFinalizer is the finalizer placed on Konfiguration resources
+// KonfigurationFinalizer is the finalizer placed on Konfiguration resources
 const KonfigurationFinalizer string = "finalizers.jsonnet.io"

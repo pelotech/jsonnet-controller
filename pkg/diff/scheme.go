@@ -25,6 +25,8 @@ import (
 	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1beta1"
 )
 
+// Scheme is the scheme used by the diff engine. It obviously does not
+// cover all types, but enough to speed up the most common operations.
 var Scheme = runtime.NewScheme()
 
 func init() {

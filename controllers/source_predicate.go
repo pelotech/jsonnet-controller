@@ -20,10 +20,13 @@ import (
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 )
 
+// SourceRevisionChangePredicate is a predicate that determines if the source
+// revision has changed.
 type SourceRevisionChangePredicate struct {
 	predicate.Funcs
 }
 
+// Update implements the predicate interface.
 func (SourceRevisionChangePredicate) Update(e event.UpdateEvent) bool {
 	if e.ObjectOld == nil || e.ObjectNew == nil {
 		return false

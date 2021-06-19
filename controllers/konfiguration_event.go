@@ -28,6 +28,7 @@ import (
 	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1beta1"
 )
 
+// EventData is a helper struct containing the information to be sent with an event.
 type EventData struct {
 	Revision, Severity, Message string
 	Metadata                    map[string]string

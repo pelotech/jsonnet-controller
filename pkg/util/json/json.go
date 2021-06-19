@@ -1,6 +1,6 @@
+// Package json is originally taken from https://github.com/argoproj/gitops-engine
 // https://github.com/argoproj/gitops-engine/blob/master/pkg/utils/json/json.go
 // Originally taken from argoproj gitops-engine (Copyright Apache 2.0)
-// https://github.com/argoproj/gitops-engine
 package json
 
 // https://github.com/ksonnet/ksonnet/blob/master/pkg/kubecfg/diff.go
@@ -10,16 +10,14 @@ func removeFields(config, live interface{}) interface{} {
 		l, ok := live.(map[string]interface{})
 		if ok {
 			return RemoveMapFields(c, l)
-		} else {
-			return live
 		}
+		return live
 	case []interface{}:
 		l, ok := live.([]interface{})
 		if ok {
 			return RemoveListFields(c, l)
-		} else {
-			return live
 		}
+		return live
 	default:
 		return live
 	}
@@ -42,6 +40,8 @@ func RemoveMapFields(config, live map[string]interface{}) map[string]interface{}
 	return result
 }
 
+// RemoveListFields removes matching list fields from the given config and live
+// interfaces.
 func RemoveListFields(config, live []interface{}) []interface{} {
 	// If live is longer than config, then the extra elements at the end of the
 	// list will be returned as-is so they appear in the diff.

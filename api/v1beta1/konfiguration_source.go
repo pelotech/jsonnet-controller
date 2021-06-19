@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// GetSource will retrieve the source object referenced by sref.
 func GetSource(ctx context.Context, c client.Client, sref *meta.NamespacedObjectKindReference) (sourcev1.Source, error) {
 	var source sourcev1.Source
 	namespacedName := types.NamespacedName{

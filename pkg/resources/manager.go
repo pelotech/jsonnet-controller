@@ -65,8 +65,8 @@ type Manager interface {
 	Prune(ctx context.Context, lastSnapshot, newSnapshot *konfigurationv1.Snapshot) (changeSet string, success bool)
 }
 
-// NewKonfigurationManager creates a new resource manager for the given konfiguration
-// using the given client.
+// NewResourceManager creates a new resource manager for the given reconcilee
+// and client.
 func NewResourceManager(cl client.Client, parent Reconcilee) Manager {
 	return &manager{Client: cl, parent: parent}
 }

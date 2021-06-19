@@ -26,12 +26,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// MaxConditionMessageLength is the maximum length of a givven condition's message.
 const MaxConditionMessageLength int = 20000
 
+// StatusMeta is a helper struct for setting the status on custom resources.
 type StatusMeta struct {
 	Revision, Reason, Message string
 }
 
+// NewStatusMeta returns a new StatusMeta object with the given parameters.
 func NewStatusMeta(revision, reason, message string) *StatusMeta {
 	return &StatusMeta{Revision: revision, Reason: reason, Message: message}
 }
@@ -41,13 +44,14 @@ func (k *Konfiguration) GetStatusConditions() *[]metav1.Condition {
 	return &k.Status.Conditions
 }
 
-// SetProgressing resets the conditions of this Kustomization to a single
+// SetProgressing resets the conditions of this Konfiguration to a single
 // ReadyCondition with status ConditionUnknown.
 func (k *Konfiguration) SetProgressing(ctx context.Context, cl client.Client) error {
 	meta.SetResourceCondition(k, meta.ReadyCondition, metav1.ConditionUnknown, meta.ProgressingReason, "reconciliation in progress")
 	return k.patchStatus(ctx, cl, k.Status)
 }
 
+// SetHealthiness sets the healthiness of this Konfiguration.
 func (k *Konfiguration) SetHealthiness(ctx context.Context, cl client.Client, status metav1.ConditionStatus, statusMeta *StatusMeta) error {
 	switch len(k.Spec.HealthChecks) {
 	case 0:

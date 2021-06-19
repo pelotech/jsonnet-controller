@@ -17,6 +17,7 @@ Copyright 2021 Pelotech - Apache License, Version 2.0.
   - Adaptation for latest go-jsonnet and goembed
   - Adds HTTP caching
 */
+
 package jsonnet
 
 import (
@@ -35,6 +36,7 @@ import (
 //go:embed lib
 var internalLib embed.FS
 
+// MakeUniversalImporter returns an importer that can handle filepaths, HTTP urls, and internal paths.
 func MakeUniversalImporter(log logr.Logger, searchURLs []*url.URL, cacheDir string) jsonnet.Importer {
 	// Reconstructed copy of http.DefaultTransport (to avoid
 	// modifying the default)

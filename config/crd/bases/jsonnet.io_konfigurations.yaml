@@ -335,8 +335,8 @@ spec:
                   entries:
                     description: A list of Kubernetes kinds grouped by namespace.
                     items:
-                      description: Snapshot holds the metadata of namespaced Kubernetes
-                        objects
+                      description: SnapshotEntry holds the metadata of namespaced
+                        Kubernetes objects
                       properties:
                         kinds:
                           additionalProperties:

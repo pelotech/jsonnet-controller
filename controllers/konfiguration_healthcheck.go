@@ -37,11 +37,14 @@ import (
 	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1beta1"
 )
 
+// KonfigurationHealthCheck is able to assess whether the configured health checks
+// for a Konfiguration are all ready.
 type KonfigurationHealthCheck struct {
 	konfiguration *konfigurationv1.Konfiguration
 	statusPoller  *polling.StatusPoller
 }
 
+// NewHealthCheck returns a new KonfigurationHealthCheck.
 func NewHealthCheck(konfiguration *konfigurationv1.Konfiguration, statusPoller *polling.StatusPoller) *KonfigurationHealthCheck {
 	return &KonfigurationHealthCheck{
 		konfiguration: konfiguration,
@@ -49,6 +52,8 @@ func NewHealthCheck(konfiguration *konfigurationv1.Konfiguration, statusPoller *
 	}
 }
 
+// Assess will check if the konfiguration's health checks are all ready. It will poll
+// at the given pollInterval.
 func (hc *KonfigurationHealthCheck) Assess(pollInterval time.Duration) error {
 	objMetadata, err := hc.toObjMetadata(hc.konfiguration.Spec.HealthChecks)
 	if err != nil {

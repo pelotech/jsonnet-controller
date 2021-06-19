@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NamespacedName returns the namespaced name fr this Konfiguration.
+// GetNamespacedName returns the namespaced name for this Konfiguration.
 func (k *Konfiguration) GetNamespacedName() types.NamespacedName {
 	return types.NamespacedName{
 		Name:      k.GetName(),
@@ -107,7 +107,7 @@ func (k *Konfiguration) GetPath() string { return k.Spec.Path }
 // GetVariables returns the external and top level arguments to pass to kubecfg.
 func (k *Konfiguration) GetVariables() *Variables { return k.Spec.Variables }
 
-// Inject will inject the configured variables into the vm.
+// InjectInto will inject the configured variables into the provided vm.
 func (v *Variables) InjectInto(vm *jsonnet.VM) {
 	for k, v := range v.ExtStr {
 		vm.ExtVar(k, v)

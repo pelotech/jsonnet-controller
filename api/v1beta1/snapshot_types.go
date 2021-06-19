@@ -40,7 +40,7 @@ type Snapshot struct {
 	Entries []SnapshotEntry `json:"entries"`
 }
 
-// Snapshot holds the metadata of namespaced
+// SnapshotEntry holds the metadata of namespaced
 // Kubernetes objects
 type SnapshotEntry struct {
 	// The namespace of this entry.
@@ -52,6 +52,8 @@ type SnapshotEntry struct {
 	Kinds map[string]string `json:"kinds"`
 }
 
+// NewSnapshotFromUnstructured creates a new snapshot from the given list of unstructured
+// objects.
 func NewSnapshotFromUnstructured(objects []*unstructured.Unstructured) (*Snapshot, error) {
 	bytes, err := json.Marshal(objects)
 	if err != nil {
@@ -90,6 +92,7 @@ func (s *Snapshot) addEntry(item *unstructured.Unstructured) {
 	}
 }
 
+// NonNamespacedKinds returns the cluster-scoped kinds in this snapshot.
 func (s *Snapshot) NonNamespacedKinds() []schema.GroupVersionKind {
 	kinds := make([]schema.GroupVersionKind, 0)
 
@@ -108,6 +111,7 @@ func (s *Snapshot) NonNamespacedKinds() []schema.GroupVersionKind {
 	return kinds
 }
 
+// NamespacedKinds returns the namespaced kinds in this snapshot.
 func (s *Snapshot) NamespacedKinds() map[string][]schema.GroupVersionKind {
 	nsk := make(map[string][]schema.GroupVersionKind)
 	for _, tracker := range s.Entries {

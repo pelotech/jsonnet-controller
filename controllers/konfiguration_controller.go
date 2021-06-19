@@ -71,6 +71,8 @@ type KonfigurationReconciler struct {
 	dryRunTimeout             time.Duration
 }
 
+// ReconcilerOptions are the configuration options that can be passed to a controller
+// when setting it up with a manager instance.
 type ReconcilerOptions struct {
 	MaxConcurrentReconciles   int
 	HTTPRetryMax              int

@@ -387,7 +387,7 @@ source revision
 
 (*Appears on:*[Snapshot](#Snapshot))
 
-Snapshot holds the metadata of namespaced Kubernetes objects
+SnapshotEntry holds the metadata of namespaced Kubernetes objects
 
 <table>
 <colgroup>
@@ -416,6 +416,9 @@ Snapshot holds the metadata of namespaced Kubernetes objects
 </table>
 
 ### StatusMeta
+
+StatusMeta is a helper struct for setting the status on custom
+resources.
 
 <table>
 <colgroup>
@@ -496,4 +499,4 @@ arguments.
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `764daf9`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `fe0ebb4`.*

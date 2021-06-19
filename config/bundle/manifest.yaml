@@ -1,172 +1,4 @@
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
-  name: jsonnet-controller-manager-role
-rules:
-- apiGroups:
-  - jsonnet.io
-  resources:
-  - konfigurations
-  - konfigurations/finalizers
-  - konfigurations/status
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  - serviceaccounts
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - source.toolkit.fluxcd.io
-  resources:
-  - buckets
-  - gitrepositories
-  - buckets/status
-  - gitrepositories/status
-  verbs:
-  - get
-  - list
-  - watch
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
-  name: jsonnet-controller-sa
-  namespace: flux-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
-  name: jsonnet-controller-cluster-admin-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-- kind: ServiceAccount
-  name: jsonnet-controller-sa
-  namespace: flux-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
-  name: jsonnet-controller-leader-election-role
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - leases
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
-  name: jsonnet-controller-leader-election-role-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: jsonnet-controller-leader-election-role
-subjects:
-- kind: ServiceAccount
-  name: jsonnet-controller-sa
-  namespace: flux-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
-  name: jsonnet-controller-manager-role-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: jsonnet-controller-manager-role
-subjects:
-- kind: ServiceAccount
-  name: jsonnet-controller-sa
-  namespace: flux-system
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
-  name: jsonnet-controller
-  namespace: flux-system
-spec:
-  ports:
-  - name: http
-    port: 9443
-    targetPort: 9443
-  - name: metrics
-    port: 8080
-    targetPort: 8080
-  selector:
-    app: jsonnet-controller
-    control_plane: manager
-  type: ClusterIP
----
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -502,8 +334,8 @@ spec:
                   entries:
                     description: A list of Kubernetes kinds grouped by namespace.
                     items:
-                      description: Snapshot holds the metadata of namespaced Kubernetes
-                        objects
+                      description: SnapshotEntry holds the metadata of namespaced
+                        Kubernetes objects
                       properties:
                         kinds:
                           additionalProperties:
@@ -620,3 +452,171 @@ spec:
         name: manager-cache
       - emptyDir: {}
         name: manager-tmp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller-manager-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: jsonnet-controller-manager-role
+subjects:
+- kind: ServiceAccount
+  name: jsonnet-controller-sa
+  namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller-manager-role
+rules:
+- apiGroups:
+  - jsonnet.io
+  resources:
+  - konfigurations
+  - konfigurations/finalizers
+  - konfigurations/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - buckets
+  - gitrepositories
+  - buckets/status
+  - gitrepositories/status
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller-sa
+  namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller-cluster-admin-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: jsonnet-controller-sa
+  namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller-leader-election-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller-leader-election-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: jsonnet-controller-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: jsonnet-controller-sa
+  namespace: flux-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller
+  namespace: flux-system
+spec:
+  ports:
+  - name: http
+    port: 9443
+    targetPort: 9443
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: jsonnet-controller
+    control_plane: manager
+  type: ClusterIP

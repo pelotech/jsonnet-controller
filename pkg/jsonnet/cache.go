@@ -42,6 +42,7 @@ type httpCache struct {
 	log logr.Logger
 }
 
+// NewHTTPCache creates a new http cache using the given transport and cache directory.
 func NewHTTPCache(log logr.Logger, t *http.Transport, cacheDir string) *httpCache {
 	return &httpCache{
 		cacheDir: cacheDir,
