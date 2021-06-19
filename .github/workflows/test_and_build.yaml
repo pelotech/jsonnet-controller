@@ -71,11 +71,17 @@ jobs:
     - name: Run Unit Tests
       run: make test
 
+    - name: Patch buildx multiarch image
+      run: |
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+        docker buildx create --name multiarch --driver docker-container --use
+        docker buildx inspect --bootstrap
+
     # Build and push the image
     - name: Build and Push Controller Image
       uses: docker/build-push-action@v2
       with:
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
         push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
         tags: ghcr.io/pelotech/jsonnet-controller:${{ steps.version.outputs.tag }}
         cache-from: type=local,src=/tmp/.buildx-cache
