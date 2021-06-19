@@ -666,7 +666,7 @@ func render(w io.Writer, pkgs []*apiPackage, config generatorConfig) error {
 		},
 		"packageAnchorID": func(p *apiPackage) string {
 			// TODO(ahmetb): currently this is the same as packageDisplayName
-			// func, and it's fine since it retuns valid DOM id strings like
+			// func, and it's fine since it returns valid DOM id strings like
 			// 'serving.knative.dev/v1alpha1' which is valid per HTML5, except
 			// spaces, so just trim those.
 			return strings.Replace(p.identifier(), " ", "", -1)

@@ -6,6 +6,10 @@ Kubecfg (and its internal libraries) as well as Tanka-style directories with a `
 
 ---
 
+[![Tests](https://github.com/pelotech/jsonnet-controller/actions/workflows/unit_tests.yaml/badge.svg)](https://github.com/pelotech/jsonnet-controller/actions/workflows/unit_tests.yaml)
+[![Build](https://github.com/pelotech/jsonnet-controller/actions/workflows/build_images.yaml/badge.svg)](https://github.com/pelotech/jsonnet-controller/actions/workflows/build_images.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/pelotech/jsonnet-controller)](https://goreportcard.com/report/github.com/pelotech/jsonnet-controller)
+
 This project is in very early stages proof-of-concept still. So expect bugs. But please feel free to open an Issue if you spot any :smile:.
 
 ## Quickstart
