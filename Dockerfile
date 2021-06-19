@@ -4,10 +4,6 @@ RUN apt-get update && apt-get install -y upx
 
 WORKDIR /workspace
 
-# Set the architecture
-ARG ARCH=amd64
-ENV ARCH=${ARCH}
-
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -22,7 +18,7 @@ COPY controllers/ controllers/
 COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -tags netgo -ldflags="-s -w" -a -o manager main.go \
+RUN CGO_ENABLED=0 GOOS=linux go build -tags netgo -ldflags="-s -w" -a -o manager main.go \
         && upx -9 manager
 
 # Use distroless as minimal base image to package the manager binary
