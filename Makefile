@@ -130,39 +130,53 @@ license-headers:
 
 ##@ Testing in k3d
 
-K3D          ?= k3d
-KUBECTL      ?= kubectl
-KUBECFG      ?= kubecfg
-FLUX         ?= flux
-CLUSTER_NAME ?= jsonnet-controller
-K8S_VER      ?= v1.20.6
-SOURCE_VER   ?= v0.14.0
+KUBECTL  ?= kubectl
+K8S_VER  ?= v1.21.1
+BIN_DIR  ?= $(CURDIR)/bin
+
+K3D         ?= bin/k3d
+K3D_VERSION ?= v4.4.6
+$(K3D):
+	mkdir -p "$(BIN_DIR)"
+	curl -s https://raw.githubusercontent.com/rancher/k3d/main/install.sh | \
+		USE_SUDO=false TAG=$(K3D_VERSION) K3D_INSTALL_DIR="$(BIN_DIR)" bash
+
+FLUX ?= bin/flux
+$(FLUX):
+	mkdir -p "$(BIN_DIR)"
+	curl -s https://fluxcd.io/install.sh | \
+		bash -s -- "$(BIN_DIR)"
+
+KUBECFG         ?= bin/kubecfg
+KUBECFG_VERSION ?= v0.20.0
+$(KUBECFG):
+	mkdir -p "$(BIN_DIR)"
+	curl -JL -o "$(KUBECFG)" https://github.com/bitnami/kubecfg/releases/download/$(KUBECFG_VERSION)/kubecfg-$(shell uname | tr A-Z a-z)-amd64
+	chmod +x "$(KUBECFG)"
+
 K3S_IMG      ?= rancher/k3s:$(K8S_VER)-k3s1
 CONTEXT      ?= k3d-$(CLUSTER_NAME)
+CLUSTER_NAME ?= jsonnet-controller
+K3D_CLUSTER_ARGS ?= 
 
+cluster: $(K3D) ## Create a local cluster with k3d
+	$(K3D) $(K3D_CLUSTER_ARGS) --image $(K3S_IMG) cluster create $(CLUSTER_NAME)
 
-# Comment this out if you want to. On Linux kernels > 5.11 there is an issue with k3s kubelet and configuring nf_conntrack.
-# https://k3d.io/faq/faq/#nodes-fail-to-start-or-get-stuck-in-notready-state-with-log-nf_conntrack_max-permission-denied
-K3D_CONNTRACK_FIX_ARGS ?= --k3s-server-arg --kube-proxy-arg=conntrack-max-per-core=0 --k3s-agent-arg --kube-proxy-arg=conntrack-max-per-core=0
-K3D_CLUSTER_ARGS       ?= $(K3D_CONNTRACK_FIX_ARGS)
-
-cluster: ## Create a local cluster with k3d
-	$(K3D) $(K3D_CLUSTER_ARGS) --image $(K3S_IMG) \
-		cluster create $(CLUSTER_NAME)
+SOURCE_VER   ?= v0.15.1
 
 flux-crds: ## Install the flux source-controller CRDs to the k3d cluster.
 	$(KUBECTL) apply --context=$(CONTEXT) \
 		-f https://raw.githubusercontent.com/fluxcd/source-controller/$(SOURCE_VER)/config/crd/bases/source.toolkit.fluxcd.io_gitrepositories.yaml \
 	 	-f https://raw.githubusercontent.com/fluxcd/source-controller/$(SOURCE_VER)/config/crd/bases/source.toolkit.fluxcd.io_buckets.yaml
 
-flux-install: ## Install flux and all its components to the k3d cluster.
+flux-install: $(FLUX) ## Install flux and all its components to the k3d cluster.
 	$(FLUX) --context=$(CONTEXT) check --pre
 	$(FLUX) --context=$(CONTEXT) install 
 
-docker-load: docker-build ## Load the manager image into the k3d cluster.
+docker-load: $(K3D) docker-build ## Load the manager image into the k3d cluster.
 	$(K3D) image import --cluster $(CLUSTER_NAME) $(IMG)
 
-deploy: ## Deploy the manager and CRDs into the k3d cluster.
+deploy: $(KUBECFG) ## Deploy the manager and CRDs into the k3d cluster.
 	$(KUBECFG) --context=$(CONTEXT) --tla-str version=$(VERSION) \
 		update config/jsonnet/jsonnet-controller.jsonnet
 
@@ -177,12 +191,12 @@ samples: ## Deploy the sample source-controller manifests into the cluster.
 
 full-local-env: cluster flux-install docker-load deploy samples ## Creates a full local environment (cluster, flux-full-install, docker-load, deploy, samples).
 
-delete-cluster: ## Delete the k3d cluster.
+delete-cluster: $(K3D) ## Delete the k3d cluster.
 	$(K3D) cluster delete $(CLUSTER_NAME)
 
-LDFLAGS ?= -s -w
-
 ##@ CLI
+
+LDFLAGS ?= -s -w
 
 build-konfig: ## Build the CLI to your GOBIN
 	cd cmd/konfig && \
@@ -192,7 +206,7 @@ GOX ?= $(GOBIN)/gox
 $(GOX):
 	GO111MODULE=off go get github.com/mitchellh/gox
 
-DIST ?= $(PWD)/dist
+DIST ?= $(CURDIR)/dist
 COMPILE_TARGETS ?= "darwin/amd64 linux/amd64 linux/arm linux/arm64 windows/amd64"
 COMPILE_OUTPUT  ?= "$(DIST)/{{.Dir}}_{{.OS}}_{{.Arch}}"
 dist-konfig: $(GOX)  ## Build release artifacts for the CLI
