@@ -100,7 +100,7 @@ var buildCmd = &cobra.Command{
 			if err := json.Unmarshal(body, &errMap); err != nil {
 				return err
 			}
-			fmt.Println(errMap["error"])
+			fmt.Fprintln(os.Stderr, errMap["error"])
 			os.Exit(3)
 		}
 
