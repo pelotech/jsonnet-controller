@@ -42,7 +42,7 @@ func GenerateCert() (path string, err error) {
 	}
 
 	// generate a key
-	privKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return
 	}
