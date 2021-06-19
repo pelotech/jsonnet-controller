@@ -1,6 +1,6 @@
 FROM golang:1.16 as builder
 
-# RUN apt-get update && apt-get install -y upx
+RUN apt-get update && apt-get install -y upx
 
 WORKDIR /workspace
 
@@ -18,7 +18,7 @@ COPY controllers/ controllers/
 COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -tags netgo -ldflags="-s -w" -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -tags netgo -ldflags="-s -w" -a -o manager main.go && upx -9 manager
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
