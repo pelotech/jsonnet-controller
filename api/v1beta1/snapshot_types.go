@@ -12,19 +12,20 @@ limitations under the License.
 
 Copyright 2021 Pelotech - Apache License, Version 2.0.
   - Adaption from fluxcd/kustomize-controller for jsonnet
+  - Create snapshots with internal checksum compute from list
+    of unstrucutred objects.
 */
 
 package v1beta1
 
 import (
-	"bytes"
-	"io"
+	"crypto/sha1"
+	"encoding/json"
+	"fmt"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 // Snapshot holds the metadata of the Kubernetes objects
@@ -51,35 +52,23 @@ type SnapshotEntry struct {
 	Kinds map[string]string `json:"kinds"`
 }
 
-func NewSnapshot(manifests []byte, checksum string) (*Snapshot, error) {
-	snapshot := Snapshot{
-		Checksum: checksum,
+func NewSnapshotFromUnstructured(objects []*unstructured.Unstructured) (*Snapshot, error) {
+	bytes, err := json.Marshal(objects)
+	if err != nil {
+		return nil, err
+	}
+	h := sha1.New()
+	if _, err := h.Write(bytes); err != nil {
+		return nil, err
+	}
+	snapshot := &Snapshot{
+		Checksum: fmt.Sprintf("%x", h.Sum(nil)),
 		Entries:  []SnapshotEntry{},
 	}
-
-	reader := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(manifests), 2048)
-	for {
-		var obj unstructured.Unstructured
-		err := reader.Decode(&obj)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
-		}
-		if obj.IsList() {
-			err := obj.EachListItem(func(item runtime.Object) error {
-				snapshot.addEntry(item.(*unstructured.Unstructured))
-				return nil
-			})
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			snapshot.addEntry(&obj)
-		}
+	for _, o := range objects {
+		snapshot.addEntry(o)
 	}
-
-	return &snapshot, nil
+	return snapshot, nil
 }
 
 func (s *Snapshot) addEntry(item *unstructured.Unstructured) {

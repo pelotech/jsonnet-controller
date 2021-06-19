@@ -321,28 +321,8 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 		return nil, fmt.Errorf("failed to build jsonnet: %w", err)
 	}
 
-	// Extract the yaml stream and checksum from the buildOutput
-	manifests, err := buildOutput.YAMLStream()
-	if err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
-			revision, meta.ReconciliationFailedReason, err.Error()),
-		); statusErr != nil {
-			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-		}
-		return nil, fmt.Errorf("failed to convert jsonnet output to yaml stream: %w", err)
-	}
-	checksum, err := buildOutput.SHA1Sum()
-	if err != nil {
-		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
-			revision, meta.ReconciliationFailedReason, err.Error()),
-		); statusErr != nil {
-			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
-		}
-		return nil, fmt.Errorf("failed to compute checksum of jsonnet output: %w", err)
-	}
-
 	// Create a snapshot from the build output
-	snapshot, err := konfigurationv1.NewSnapshot(manifests, checksum)
+	snapshot, err := konfigurationv1.NewSnapshotFromUnstructured(buildOutput.SortedObjects())
 	if err != nil {
 		if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(revision, meta.ReconciliationFailedReason, err.Error())); statusErr != nil {
 			reqLogger.Error(statusErr, "Failed to update Konfiguration status")
@@ -362,7 +342,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 	// a full reconcilation.
 	if konfig.ShouldValidate() {
 		var changeset string
-		if changeset, err = manager.Reconcile(ctx, snapshot, manifests, true); err != nil {
+		if changeset, err = manager.ReconcileUnstructured(ctx, snapshot, buildOutput.SortedObjects(), true); err != nil {
 			if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
 				revision, meta.ReconciliationFailedReason, err.Error()),
 			); statusErr != nil {
@@ -380,7 +360,7 @@ func (r *KonfigurationReconciler) reconcile(ctx context.Context, konfig *konfigu
 
 	// Reconcile resources from the output if needed
 	if reconcileRequired {
-		if changeset, err := manager.Reconcile(ctx, snapshot, manifests, false); err != nil {
+		if changeset, err := manager.ReconcileUnstructured(ctx, snapshot, buildOutput.SortedObjects(), false); err != nil {
 			if statusErr := konfig.SetNotReady(ctx, r.Client, konfigurationv1.NewStatusMeta(
 				revision, meta.ReconciliationFailedReason, err.Error()),
 			); statusErr != nil {

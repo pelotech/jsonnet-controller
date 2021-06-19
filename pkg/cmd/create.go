@@ -59,7 +59,7 @@ func init() {
 	createFlags.StringVar(&sourceRef.Name, "source-name", "", "the name of the source object containing the jsonnet code")
 	createFlags.StringVar(&sourceRef.Namespace, "source-namespace", "", "the namespace of the source object containing the jsonnet code (defaults to the creation namespace)")
 	createFlags.StringVar(&sourceRef.Kind, "source-kind", "GitRepository", "the kind of source provided by --source-name.")
-	createFlags.StringVarP(&createSpec.Namespace, "namespace", "n", "default", "The namespace to create the resource")
+	createFlags.StringVarP(&createSpec.Namespace, "namespace", "n", "default", "the namespace to create the resource")
 	createFlags.DurationVar(&createSpec.Spec.Interval.Duration, "interval", time.Minute*5, "the interval to reconcile the konfiguration")
 	createFlags.DurationVar(&createSpec.Spec.RetryInterval.Duration, "retry-interval", time.Duration(0), "the interval to reconcile the konfiguration")
 	createFlags.DurationVar(&createSpec.Spec.Timeout.Duration, "timeout", time.Duration(0), "the timeout for konfiguration reconcile attempts")
