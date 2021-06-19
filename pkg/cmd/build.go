@@ -52,7 +52,7 @@ var buildCmd = &cobra.Command{
 			stopChan <- struct{}{}
 			return err
 		}
-		localAddr = fmt.Sprintf("https://127.0.0.1:%d/dry-run", ports[0].Local)
+		localAddr = fmt.Sprintf("https://127.0.0.1:%d/build", ports[0].Local)
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {

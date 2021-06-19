@@ -150,7 +150,7 @@ func main() {
 		HTTPLog:               ctrl.Log.WithName("webhook"),
 	}
 
-	mgr.GetWebhookServer().Register("/dry-run", konfigurationController.DryRunFunc())
+	mgr.GetWebhookServer().Register("/build", konfigurationController.DryRunFunc())
 
 	if err = konfigurationController.SetupWithManager(setupLog, mgr, &reconcileOpts); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Konfiguration")
