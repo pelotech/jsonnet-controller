@@ -51,6 +51,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 
 	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1beta1"
+	"github.com/pelotech/jsonnet-controller/pkg/healthcheck"
 	"github.com/pelotech/jsonnet-controller/pkg/impersonation"
 	"github.com/pelotech/jsonnet-controller/pkg/jsonnet"
 	"github.com/pelotech/jsonnet-controller/pkg/resources"
@@ -479,7 +480,7 @@ func (r *KonfigurationReconciler) checkHealth(ctx context.Context, statusPoller 
 		return nil
 	}
 
-	hc := NewHealthCheck(konfig, statusPoller)
+	hc := healthcheck.NewHealthCheck(konfig, statusPoller)
 
 	if err := hc.Assess(1 * time.Second); err != nil {
 		return err

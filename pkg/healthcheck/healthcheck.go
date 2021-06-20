@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux authors
+Copyright 2021 Pelotech.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,12 +12,11 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
-Copyright 2021 Pelotech - Apache License, Version 2.0.
-  - Adaption for Konfigurations from fluxcd/kustomize-controller
 */
 
-package controllers
+// Package healthcheck contains an interface for assessing the health of
+// resources configured in a CR.
+package healthcheck
 
 import (
 	"context"
@@ -26,6 +25,7 @@ import (
 	"time"
 
 	"github.com/fluxcd/pkg/apis/meta"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/cli-utils/pkg/kstatus/polling"
 	"sigs.k8s.io/cli-utils/pkg/kstatus/polling/aggregator"
@@ -33,34 +33,40 @@ import (
 	"sigs.k8s.io/cli-utils/pkg/kstatus/polling/event"
 	"sigs.k8s.io/cli-utils/pkg/kstatus/status"
 	"sigs.k8s.io/cli-utils/pkg/object"
-
-	konfigurationv1 "github.com/pelotech/jsonnet-controller/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// KonfigurationHealthCheck is able to assess whether the configured health checks
-// for a Konfiguration are all ready.
-type KonfigurationHealthCheck struct {
-	konfiguration *konfigurationv1.Konfiguration
-	statusPoller  *polling.StatusPoller
+type HealthChecker interface {
+	client.Object
+
+	GetTimeout() time.Duration
+	GetHealthChecks() []meta.NamespacedObjectKindReference
 }
 
-// NewHealthCheck returns a new KonfigurationHealthCheck.
-func NewHealthCheck(konfiguration *konfigurationv1.Konfiguration, statusPoller *polling.StatusPoller) *KonfigurationHealthCheck {
-	return &KonfigurationHealthCheck{
-		konfiguration: konfiguration,
-		statusPoller:  statusPoller,
+// HealthCheck is able to assess whether the configured health checks
+// for a CR are all ready.
+type HealthCheck struct {
+	parent       HealthChecker
+	statusPoller *polling.StatusPoller
+}
+
+// NewHealthCheck returns a new HealthCheck able to assess the given CR.
+func NewHealthCheck(parent HealthChecker, statusPoller *polling.StatusPoller) *HealthCheck {
+	return &HealthCheck{
+		parent:       parent,
+		statusPoller: statusPoller,
 	}
 }
 
-// Assess will check if the konfiguration's health checks are all ready. It will poll
+// Assess will check if the configured health checks are all ready. It will poll
 // at the given pollInterval.
-func (hc *KonfigurationHealthCheck) Assess(pollInterval time.Duration) error {
-	objMetadata, err := hc.toObjMetadata(hc.konfiguration.Spec.HealthChecks)
+func (hc *HealthCheck) Assess(pollInterval time.Duration) error {
+	objMetadata, err := hc.toObjMetadata(hc.parent.GetHealthChecks())
 	if err != nil {
 		return err
 	}
 
-	timeout := hc.konfiguration.GetTimeout() + (time.Second * 1)
+	timeout := hc.parent.GetTimeout() + (time.Second * 1)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -102,7 +108,7 @@ func (hc *KonfigurationHealthCheck) Assess(pollInterval time.Duration) error {
 	return nil
 }
 
-func (hc *KonfigurationHealthCheck) toObjMetadata(cr []meta.NamespacedObjectKindReference) ([]object.ObjMetadata, error) {
+func (hc *HealthCheck) toObjMetadata(cr []meta.NamespacedObjectKindReference) ([]object.ObjMetadata, error) {
 	oo := []object.ObjMetadata{}
 	for _, c := range cr {
 		// For backwards compatibility
@@ -126,6 +132,6 @@ func (hc *KonfigurationHealthCheck) toObjMetadata(cr []meta.NamespacedObjectKind
 	return oo, nil
 }
 
-func (hc *KonfigurationHealthCheck) objMetadataToString(om object.ObjMetadata) string {
+func (hc *HealthCheck) objMetadataToString(om object.ObjMetadata) string {
 	return fmt.Sprintf("%s '%s/%s'", om.GroupKind.Kind, om.Namespace, om.Name)
 }
