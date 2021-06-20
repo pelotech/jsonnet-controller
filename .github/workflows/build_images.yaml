@@ -10,7 +10,7 @@ jobs:
 
   build-images:
     name: Build Docker Images
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       # Check out code
       - name: Checkout
