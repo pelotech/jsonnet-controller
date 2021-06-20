@@ -25,7 +25,7 @@ There are multiple ways to install the `jsonnet-controller`.
 ```bash
 VERSION=v0.0.5
 
-kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/${VERSION}/config/bundle/manifest.yaml
+kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/${VERSION}/pkg/cmd/manifest.yaml
 ```
 
 You can also use the manifest from the `main` branch to deploy the `latest` tag.
