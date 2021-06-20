@@ -17,7 +17,7 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
+	"errors"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -46,6 +46,7 @@ func init() {
 var kubeconfig string
 var restConfig *rest.Config
 var k8sClient client.Client
+var clientErr error
 var serializer *json.Serializer
 
 var rootCmd = &cobra.Command{
@@ -59,6 +60,16 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func checkClient() error {
+	if clientErr != nil {
+		return clientErr
+	}
+	if k8sClient == nil {
+		return errors.New("could not configure the k8s client")
+	}
+	return nil
 }
 
 func initClient() {
@@ -75,28 +86,28 @@ func initClient() {
 	if kubeconfig == "" {
 		usr, err := user.Current()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "ERROR: Could not determine current user's home directory:", err.Error())
-			os.Exit(1)
+			clientErr = err
+			return
 		}
 		kubeconfig = filepath.Join(usr.HomeDir, ".kube", "config")
 	}
 
 	kbytes, err := ioutil.ReadFile(kubeconfig)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: Could not read", kubeconfig, ":", err.Error())
-		os.Exit(1)
+		clientErr = err
+		return
 	}
 
 	restConfig, err = clientcmd.RESTConfigFromKubeConfig(kbytes)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: Could not create a REST config from", kubeconfig, ":", err.Error())
-		os.Exit(1)
+		clientErr = err
+		return
 	}
 
 	restMapper, err := apiutil.NewDynamicRESTMapper(restConfig)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: Could not setup a REST Mapper from", kubeconfig, ":", err.Error())
-		os.Exit(1)
+		clientErr = err
+		return
 	}
 
 	k8sClient, err = client.New(restConfig, client.Options{
@@ -104,7 +115,7 @@ func initClient() {
 		Scheme: scheme,
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: Failed to configure a Kubernetes client:", err.Error())
-		os.Exit(1)
+		clientErr = err
+		return
 	}
 }

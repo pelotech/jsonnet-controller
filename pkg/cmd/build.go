@@ -42,6 +42,9 @@ var buildCmd = &cobra.Command{
 	Short: "Evaluate what a given Konfiguration manifest would produce",
 	Args:  cobra.MaximumNArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if err := checkClient(); err != nil {
+			return err
+		}
 		var err error
 		forwarder, stopChan, err = forwardControllerPort("9443")
 		if err != nil {

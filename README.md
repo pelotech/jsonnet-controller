@@ -18,24 +18,48 @@ API Documentation is available [here](doc/konfigurations.md#konfigurationspec).
 
 ### Installing
 
-You can use either `kubectl`, [`kustomize`](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/), or [`kubecfg`](https://github.com/bitnami/kubecfg/releases) to install the controller and its CRDs.
+There are multiple ways to install the `jsonnet-controller`.
+
+#### Using `kubectl`
 
 ```bash
 VERSION=v0.0.4
 
-# Using kubectl - A bundle manifest is included in the repository that is
-# the output of the jsonnet with the default values and latest tagged release.
 kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/${VERSION}/config/bundle/manifest.yaml
+```
 
-# Using kubecfg - import and extend this file for modifications
-## The kubecfg assumes the `flux-system` namespace is present already.
-## If it isn't, create it (or import the file and set `create_namespace: true`):
-##    kubectl create ns flux-system
+You can also use the manifest from the `main` branch to deploy the `latest` tag.
+
+#### Using [`kubecfg`](https://github.com/bitnami/kubecfg/releases)
+
+There is a `kubecfg` manifest located [here](config/jsonnet/jsonnet-controller.jsonnet). You can either invoke it directly, or import it to make your own modifications. You will need to clone the repository first.
+
+```bash
+git clone https://github.com/pelotech/jsonnet-controller && cd jsonnet-controller
+
 kubecfg update config/jsonnet/jsonnet-controller.jsonnet
 # To install a specific version of the controller
 kubecfg update --tla-str version=${VERSION} config/jsonnet/jsonnet-controller.jsonnet
+```
 
-# Using kustomize
+#### Using the `konfig` CLI.
+
+There is an experimental CLI included with this project, that among other things, can install the jsonnet-controller into a cluster. The feature is available since `v0.0.5`.
+To install, just download the latest CLI from the [releases](https://github.com/pelotech/jsonnet-controller/releases) page and run:
+
+```bash
+konfig install
+```
+
+Use the `--kubeconfig` flag to specify a kubeconfig different then `~/.kube/config`.
+
+#### Using [`kustomize`](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/)
+
+Kubebuilder generates `kustomize` manifests with the project. You can use them by cloning the repository down and executing the following:
+
+```bash
+git clone https://github.com/pelotech/jsonnet-controller && cd jsonnet-controller
+
 cd config/manager
 ## This is the current value, but if you want to change the image
 kustomize edit set image controller=ghcr.io/pelotech/jsonnet-controller:latest
@@ -44,7 +68,7 @@ kustomize build . | kubectl apply -f -
 ```
 
 Using `kustomize` you will want to tie any additional cluster permissions necessary to the created manager role.
-The jsonnet by default makes the manager a cluster-admin.
+The other installation methods by default make the manager a cluster-admin.
 
 ### Examples
 

@@ -199,6 +199,7 @@ delete-cluster: $(K3D) ## Delete the k3d cluster.
 LDFLAGS ?= -s -w
 
 build-konfig: ## Build the CLI to your GOBIN
+	cp config/bundle/manifest.yaml pkg/cmd/manifest.yaml
 	cd cmd/konfig && \
 		CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(GOBIN)/konfig .
 
@@ -210,6 +211,7 @@ DIST ?= $(CURDIR)/dist
 COMPILE_TARGETS ?= "darwin/amd64 linux/amd64 linux/arm linux/arm64 windows/amd64"
 COMPILE_OUTPUT  ?= "$(DIST)/{{.Dir}}_{{.OS}}_{{.Arch}}"
 dist-konfig: $(GOX)  ## Build release artifacts for the CLI
+	cp config/bundle/manifest.yaml pkg/cmd/manifest.yaml
 	mkdir -p dist
 	cd cmd/konfig && \
 		CGO_ENABLED=0 $(GOX) -osarch=$(COMPILE_TARGETS) -output=$(COMPILE_OUTPUT) -ldflags="$(LDFLAGS)"

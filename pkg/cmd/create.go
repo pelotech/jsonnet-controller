@@ -87,6 +87,11 @@ var createCmd = &cobra.Command{
 	Aliases: []string{"new"},
 	Args:    cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if !createExport {
+			if err := checkClient(); err != nil {
+				return err
+			}
+		}
 		createSpec.Name = args[0]
 
 		if !strings.HasPrefix(createSpec.Spec.Path, "http") && sourceRef.Name == "" {
