@@ -32,12 +32,12 @@ limitations under the License.
     // 
     //   { "major_version": 1 }
     //
-    semver:: std.native('semver'),
+    // semver:: std.native('semver'),
 
     // semverCompare(constraint, version): Compares the given version against
     // the provided constraint. For more information, see the sprig documentation.
     // https://masterminds.github.io/sprig/semver.html
-    semverCompare:: std.native('semverCompare'),
+    // semverCompare:: std.native('semverCompare'),
 
     // sha1Sum(string): Computes a SHA1 sum of the given string.
     sha1Sum:: std.native('sha1Sum'),

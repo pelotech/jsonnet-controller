@@ -26,7 +26,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Masterminds/semver"
 	jsonnet "github.com/google/go-jsonnet"
 	jsonnetAst "github.com/google/go-jsonnet/ast"
 	goyaml "gopkg.in/yaml.v2"
@@ -40,43 +39,43 @@ func registerNativeFuncs(vm *jsonnet.VM) {
 	// Version Compare Functions
 	// https://masterminds.github.io/sprig/semver.html
 
-	vm.NativeFunction(&jsonnet.NativeFunction{
-		Name:   "semver",
-		Params: []jsonnetAst.Identifier{"version"},
-		Func: func(args []interface{}) (res interface{}, err error) {
-			in := args[0].(string)
-			vers, err := semver.NewVersion(in)
-			if err != nil {
-				return
-			}
-			res = map[string]interface{}{
-				"major":       float64(vers.Major()),
-				"minor":       float64(vers.Minor()),
-				"patch":       float64(vers.Patch()),
-				"pre_release": vers.Prerelease(),
-				"metadata":    vers.Metadata(),
-			}
-			return
-		},
-	})
+	// vm.NativeFunction(&jsonnet.NativeFunction{
+	// 	Name:   "semver",
+	// 	Params: []jsonnetAst.Identifier{"version"},
+	// 	Func: func(args []interface{}) (res interface{}, err error) {
+	// 		in := args[0].(string)
+	// 		vers, err := semver.NewVersion(in)
+	// 		if err != nil {
+	// 			return
+	// 		}
+	// 		res = map[string]interface{}{
+	// 			"major":       float64(vers.Major()),
+	// 			"minor":       float64(vers.Minor()),
+	// 			"patch":       float64(vers.Patch()),
+	// 			"pre_release": vers.Prerelease(),
+	// 			"metadata":    vers.Metadata(),
+	// 		}
+	// 		return
+	// 	},
+	// })
 
-	vm.NativeFunction(&jsonnet.NativeFunction{
-		Name:   "semverCompare",
-		Params: []jsonnetAst.Identifier{"constraint", "version"},
-		Func: func(args []interface{}) (res interface{}, err error) {
-			constraint := args[0].(string)
-			version := args[1].(string)
-			vers, err := semver.NewVersion(version)
-			if err != nil {
-				return
-			}
-			c, err := semver.NewConstraint(constraint)
-			if err != nil {
-				return
-			}
-			return c.Check(vers), nil
-		},
-	})
+	// vm.NativeFunction(&jsonnet.NativeFunction{
+	// 	Name:   "semverCompare",
+	// 	Params: []jsonnetAst.Identifier{"constraint", "version"},
+	// 	Func: func(args []interface{}) (res interface{}, err error) {
+	// 		constraint := args[0].(string)
+	// 		version := args[1].(string)
+	// 		vers, err := semver.NewVersion(version)
+	// 		if err != nil {
+	// 			return
+	// 		}
+	// 		c, err := semver.NewConstraint(constraint)
+	// 		if err != nil {
+	// 			return
+	// 		}
+	// 		return c.Check(vers), nil
+	// 	},
+	// })
 
 	// Hashing Functions
 
