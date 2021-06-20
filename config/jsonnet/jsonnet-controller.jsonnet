@@ -1,7 +1,7 @@
 local kube = import 'https://github.com/bitnami-labs/kube-libsonnet/raw/v1.14.6/kube.libsonnet';
 local kubecfg = import 'internal://lib/kubecfg.libsonnet';
 
-function(version='v0.0.4') {
+function(version='v0.0.5') {
     local this = self,
 
     // The prefix to use for names of resources

@@ -24,4 +24,3 @@ bin/
 testbin/
 vendor/
 dist/
-pkg/cmd/manifest.yaml
