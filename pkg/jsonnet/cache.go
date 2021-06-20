@@ -54,7 +54,7 @@ func NewHTTPCache(log logr.Logger, t *http.Transport, cacheDir string) *httpCach
 }
 
 var httpRegex = regexp.MustCompile("^(https?)://")
-var intRegex = regexp.MustCompile("^internal://(.*)")
+var internalRegex = regexp.MustCompile("^internal:///?(.*)$")
 
 func (h *httpCache) getLocalPath(url string) string {
 	return filepath.Join(h.cacheDir, httpRegex.ReplaceAllString(url, ""))
@@ -89,7 +89,7 @@ func (h *httpCache) writeToCache(url string, contents []byte) error {
 
 func (h *httpCache) Get(url string) (jsonnet.Contents, error) {
 	isHTTP := httpRegex.MatchString(url)
-	isInt := intRegex.MatchString(url)
+	isInternal := internalRegex.MatchString(url)
 
 	// If this is an http url, try the local cache first
 	if isHTTP {
@@ -99,9 +99,13 @@ func (h *httpCache) Get(url string) (jsonnet.Contents, error) {
 		}
 	}
 
-	// If this is an internal URL make sure it is rooted
-	if isInt {
-		url = intRegex.ReplaceAllString(url, "internal:///$1")
+	// If this is an internal URL make sure it is rooted at /lib
+	if isInternal {
+		match := internalRegex.FindStringSubmatch(url)
+		if len(match) != 2 {
+			return jsonnet.Contents{}, errors.New("malformed internal URL")
+		}
+		url = fmt.Sprintf("internal:///lib/%s", strings.TrimLeft(match[1], "lib/"))
 		if strings.HasSuffix(url, "kubecfg.libsonnet") {
 			url = "internal:///lib/kubecfg.libsonnet"
 		}
