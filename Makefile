@@ -18,6 +18,9 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+embed-bundle:
+	cp config/bundle/manifest.yaml pkg/cmd/manifest.yaml
+
 all: build
 
 ##@ General 
@@ -38,10 +41,10 @@ help: ## Display this help.
 
 ##@ Development
 
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+manifests: embed-bundle controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+generate: embed-bundle controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 fmt: ## Run go fmt against code.
@@ -51,7 +54,7 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: manifests generate fmt vet ## Run tests.
+test: embed-bundle manifests generate fmt vet ## Run tests.
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
@@ -61,7 +64,7 @@ GOLANGCI_VERSION ?= v1.40.1
 $(GOLANGCI_LINT):
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(PWD)/bin" $(GOLANGCI_VERSION)
 
-lint: $(GOLANGCI_LINT) ## Run linting.
+lint: $(GOLANGCI_LINT) embed-bundle ## Run linting.
 	"$(GOLANGCI_LINT)" run -v
 
 ##@ Build
@@ -72,7 +75,7 @@ build: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
-docker-build: test ## Build docker image with the manager.
+docker-build: test embed-bundle ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
 docker-push: ## Push docker image with the manager.
@@ -198,8 +201,7 @@ delete-cluster: $(K3D) ## Delete the k3d cluster.
 
 LDFLAGS ?= -s -w
 
-build-konfig: ## Build the CLI to your GOBIN
-	cp config/bundle/manifest.yaml pkg/cmd/manifest.yaml
+build-konfig: embed-bundle ## Build the CLI to your GOBIN
 	cd cmd/konfig && \
 		CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(GOBIN)/konfig .
 
@@ -210,8 +212,7 @@ $(GOX):
 DIST ?= $(CURDIR)/dist
 COMPILE_TARGETS ?= "darwin/amd64 linux/amd64 linux/arm linux/arm64 windows/amd64"
 COMPILE_OUTPUT  ?= "$(DIST)/{{.Dir}}_{{.OS}}_{{.Arch}}"
-dist-konfig: $(GOX)  ## Build release artifacts for the CLI
-	cp config/bundle/manifest.yaml pkg/cmd/manifest.yaml
+dist-konfig: embed-bundle $(GOX)  ## Build release artifacts for the CLI
 	mkdir -p dist
 	cd cmd/konfig && \
 		CGO_ENABLED=0 $(GOX) -osarch=$(COMPILE_TARGETS) -output=$(COMPILE_OUTPUT) -ldflags="$(LDFLAGS)"

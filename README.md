@@ -23,7 +23,7 @@ There are multiple ways to install the `jsonnet-controller`.
 #### Using `kubectl`
 
 ```bash
-VERSION=v0.0.4
+VERSION=v0.0.5
 
 kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/${VERSION}/config/bundle/manifest.yaml
 ```
