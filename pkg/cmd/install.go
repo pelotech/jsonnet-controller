@@ -49,7 +49,7 @@ func init() {
 	rootCmd.AddCommand(installCmd)
 }
 
-var imageRegex = regexp.MustCompile("image: (ghcr.io/pelotech/jsonnet-controller):(latest)")
+var imageRegex = regexp.MustCompile(`image: (ghcr\.io/pelotech/jsonnet-controller):(latest)`)
 
 var installCmd = &cobra.Command{
 	Use:   "install",
