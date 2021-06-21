@@ -7,18 +7,15 @@ local default_interval = '5m';
     // and its parents for additional configuration options.
     // https://fluxcd.io/docs/components/source/gitrepositories
     GitRepository(url, interval=default_interval):: 
-        flux.Object('source', 'GitRepository', '')
+        flux.Object('source', 'GitRepository', utils.urlToDefaultName(url))
         .WithIntervalAndTimeout(interval)
-        .WithNameFromPrivate()
         .WithCredentials()
         .WithIgnore()
         .WithSuspend()
-        .PruneFromPrivateSpec() 
     {
         local repo = self,
 
-        // A name generated from the repository URL. Override this private field to set explicitly.
-        name:: utils.urlToDefaultName(url),
+        name:: null,
 
         config+:: {
             verifySecret: null,
@@ -27,9 +24,10 @@ local default_interval = '5m';
             includes: {}
         },
 
-        map_includes(includes):: [
+        mapIncludes(includes):: [
             {
-                assert std.type(includes[key]) == 'object' : '"config_.includes" must be map of repository names to path configurations (or an empty object for the defaults)',
+                assert std.type(includes[key]) == 'object' : 
+                    'GitRepository %s "includes" must be map of repository names to path configurations (or an empty object for the defaults)' % repo.GetName(),
                 repository: { name: key },
                 fromPath: if std.objectHas(includes[key], 'fromPath') then includes[key].fromPath,
                 toPath: if std.objectHas(includes[key], 'toPath') then includes[key].toPath,
@@ -48,7 +46,7 @@ local default_interval = '5m';
                         std.objectHas(config.ref, 'tag') ||
                         std.objectHas(config.ref, 'semver') ||
                         std.objectHas(config.ref, 'commit')) :
-                    'ref configuration %s is invalid' % std.toString(config.ref),
+                    'GitRepository %s ref configuration %s is invalid' % [ repo.GetName(), std.toString(config.ref)],
                 branch: if std.objectHas(config.ref, 'branch') then config.ref.branch else null,
                 tag: if std.objectHas(config.ref, 'tag') then config.ref.tag else null,
                 semver: if std.objectHas(config.ref, 'semver') then config.ref.semver else null,
@@ -56,18 +54,19 @@ local default_interval = '5m';
             },
 
             verify: if std.objectHas(config, 'verifySecret') && config.verifySecret != null then {
-                assert std.type(config.verifySecret) == 'string' : '"verifySecret" must be a string',
+                assert std.type(config.verifySecret) == 'string' : 
+                    'GitRepository %s "verifySecret" must be a string' % repo.GetName(),
                 mode: 'head',
                 secretRef: { name: config.verifySecret },
             },
 
             recurseSubmodules: if std.objectHas(config, 'recurseSubmodules') && config.recurseSubmodules then true,
             assert utils.notExistsOrType(config, 'recurseSubmodules', 'boolean') :
-                '"recurseSubmodules" must be a boolean value',
+                'GitRepository %s "recurseSubmodules" must be a boolean value' % repo.GetName(),
 
-            include: if std.objectHas(config, 'includes') && std.type(config.includes) == 'object' then repo.map_includes(config.includes),
+            include: if std.objectHas(config, 'includes') && std.type(config.includes) == 'object' then repo.mapIncludes(config.includes),
             assert utils.notExistsOrType(config, 'includes', 'object') :
-                '"includes" must be map of repository names to path configurations (or an empty object for the defaults)',
+                'GitRepository %s "includes" must be map of repository names to path configurations (or an empty object for the defaults)' % repo.GetName(),
         },
     },
     
@@ -75,17 +74,15 @@ local default_interval = '5m';
     // and its parents for additional configuration options.
     // https://fluxcd.io/docs/components/source/buckets
     Bucket(bucketName, endpoint="s3.amazonaws.com", interval=default_interval):: 
-        flux.Object('source', 'Bucket', '')
+        flux.Object('source', 'Bucket', bucketName)
         .WithIntervalAndTimeout(interval)
-        .WithNameFromPrivate()
         .WithCredentials()
         .WithIgnore()
         .WithSuspend()
-        .PruneFromPrivateSpec() 
     {
         local bucket = self,
 
-        name:: bucketName,
+        name:: null,
 
         config+:: {
             insecure: false,
@@ -100,11 +97,11 @@ local default_interval = '5m';
 
             insecure: if std.objectHas(config, 'insecure') && config.insecure != false then config.insecure,
             assert utils.nullOrIsType(self.insecure, 'boolean') :
-                '"insecure" must be a boolean value',
+                'Bucket %s "insecure" must be a boolean value' % bucket.GetName(),
 
             region: if std.objectHas(config, 'region') && config.region != '' then config.region,
             assert utils.nullOrIsType(self.region, 'string') :
-                '"region" must be a string value'
+                'Bucket %s "region" must be a string value' % bucket.GetName()
         },
     },
 
@@ -112,16 +109,14 @@ local default_interval = '5m';
     // and its parents for additional configuration options.
     // https://fluxcd.io/docs/components/source/helmrepositories
     HelmRepository(url, interval=default_interval):: 
-        flux.Object('source', 'HelmRepository', '')
+        flux.Object('source', 'HelmRepository', utils.urlToDefaultName(url))
         .WithIntervalAndTimeout(interval)
-        .WithNameFromPrivate()
         .WithCredentials()
         .WithSuspend()
-        .PruneFromPrivateSpec() 
     {
         local helmrepo = self,
 
-        name:: utils.urlToDefaultName(url),
+        name:: null,
 
         config+:: {
             passCredentials: false
@@ -132,7 +127,7 @@ local default_interval = '5m';
             url: url,
             passCredentials: if std.objectHas(config, 'passCredentials') && config.passCredentials != false then config.passCredentials,
             assert utils.nullOrIsType(self.passCredentials, 'boolean') :
-                '"passCredentials" must be a boolean value',
+                'HelmRepository %s "passCredentials" must be a boolean value' % helmrepo.GetName(),
         },
     },
 
@@ -140,16 +135,14 @@ local default_interval = '5m';
     // and its parents for additional configuration options.
     // https://fluxcd.io/docs/components/source/helmcharts
     HelmChart(chart, interval=default_interval):: 
-        flux.Object('source', 'HelmChart', '')
+        flux.Object('source', 'HelmChart', chart)
         .WithIntervalAndTimeout(interval)
-        .WithNameFromPrivate()
         .WithSuspend()
-        .PruneFromPrivateSpec() 
         .WithLocalSourceRef()
     {
         local helmchart = self,
 
-        name:: chart,
+        name:: null,
 
         config+:: {
             version: '',
@@ -163,11 +156,11 @@ local default_interval = '5m';
             
             version: if std.objectHas(config, 'version') && config.version != '' then config.version,
             assert utils.nullOrIsType(self.version, 'string') :
-                '"version" must be a string',
+                'HelmChart %s "version" must be a string' % helmchart.GetName(),
 
             valuesFiles: if std.objectHas(config, 'valuesFiles') && config.valuesFiles != [] then config.valuesFiles,
             assert utils.nullOrIsType(self.valuesFiles, 'array') :
-                '"valuesFiles" must be an array of strings',
+                'HelmChart %s "valuesFiles" must be an array of strings' % helmchart.GetName(),
         },
     }
 }

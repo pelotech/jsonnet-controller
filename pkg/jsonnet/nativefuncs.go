@@ -18,10 +18,7 @@ package jsonnet
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"io"
 	"regexp"
 	"strings"
@@ -33,81 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-// registerNativeFuncs adds kubecfg's native jsonnet functions to provided VM
+// registerNativeFuncs adds kubecfg's native jsonnet functions to the provided VM
 func registerNativeFuncs(vm *jsonnet.VM) {
-
-	// Version Compare Functions
-	// https://masterminds.github.io/sprig/semver.html
-
-	// vm.NativeFunction(&jsonnet.NativeFunction{
-	// 	Name:   "semver",
-	// 	Params: []jsonnetAst.Identifier{"version"},
-	// 	Func: func(args []interface{}) (res interface{}, err error) {
-	// 		in := args[0].(string)
-	// 		vers, err := semver.NewVersion(in)
-	// 		if err != nil {
-	// 			return
-	// 		}
-	// 		res = map[string]interface{}{
-	// 			"major":       float64(vers.Major()),
-	// 			"minor":       float64(vers.Minor()),
-	// 			"patch":       float64(vers.Patch()),
-	// 			"pre_release": vers.Prerelease(),
-	// 			"metadata":    vers.Metadata(),
-	// 		}
-	// 		return
-	// 	},
-	// })
-
-	// vm.NativeFunction(&jsonnet.NativeFunction{
-	// 	Name:   "semverCompare",
-	// 	Params: []jsonnetAst.Identifier{"constraint", "version"},
-	// 	Func: func(args []interface{}) (res interface{}, err error) {
-	// 		constraint := args[0].(string)
-	// 		version := args[1].(string)
-	// 		vers, err := semver.NewVersion(version)
-	// 		if err != nil {
-	// 			return
-	// 		}
-	// 		c, err := semver.NewConstraint(constraint)
-	// 		if err != nil {
-	// 			return
-	// 		}
-	// 		return c.Check(vers), nil
-	// 	},
-	// })
-
-	// Hashing Functions
-
-	vm.NativeFunction(&jsonnet.NativeFunction{
-		Name:   "sha1Sum",
-		Params: []jsonnetAst.Identifier{"str"},
-		Func: func(args []interface{}) (res interface{}, err error) {
-			in := args[0].(string)
-			h := sha1.New()
-			_, err = h.Write([]byte(in))
-			if err != nil {
-				return
-			}
-			res = fmt.Sprintf("%x", h.Sum(nil))
-			return
-		},
-	})
-
-	vm.NativeFunction(&jsonnet.NativeFunction{
-		Name:   "sha256Sum",
-		Params: []jsonnetAst.Identifier{"str"},
-		Func: func(args []interface{}) (res interface{}, err error) {
-			in := args[0].(string)
-			h := sha256.New()
-			_, err = h.Write([]byte(in))
-			if err != nil {
-				return
-			}
-			res = fmt.Sprintf("%x", h.Sum(nil))
-			return
-		},
-	})
 
 	// JSON/YAML Parsing
 

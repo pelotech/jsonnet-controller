@@ -10,8 +10,22 @@ local utils = import 'utils.libsonnet';
         apiVersion: '%s.toolkit.fluxcd.io/%s' % [group, version],
         kind: kind,
         metadata: {
-            name: name
+            // This will usually get evaluated last, so errors will 
+            // contain the "assumed" name. But if the user provides
+            // any "name:" field it will override this value in the
+            // final rendering.
+            //
+            // Extending objects should explicity define a `name:: null`
+            // to avoid the user adding garbage fields to the rendering.
+            name: if std.objectHas(object, 'name') && object.name != null then object.name else name
         },
+
+        // All extending objects should extend the spec_:: private field
+        spec+: std.prune(object.spec_),
+
+        // Helpers for retrieving the default name and kind of this object
+        GetName():: object.metadata.name,
+        GetKind():: object.kind,
 
         // WithIntervalAndTimeout returns this object with an assumed required interval
         // and an optional timeout config.
@@ -24,7 +38,8 @@ local utils = import 'utils.libsonnet';
                 interval: interval,
                 timeout: if std.objectHas(objectWithTimeout.config, 'timeout') 
                     then objectWithTimeout.config.timeout,
-                assert utils.nullOrIsType(self.timeout, 'string') : '"timeout" must be a string',
+                assert utils.nullOrIsType(self.timeout, 'string') : 
+                    '%s %s "timeout" must be a string' % [object.GetKind(), object.GetName()],
             },
         },
 
@@ -40,7 +55,7 @@ local utils = import 'utils.libsonnet';
                     then {
                         name: objectWithCredentials.config.credentialsSecret,
                         assert utils.nullOrIsType(self.name, 'string') : 
-                            '"credentialsSecret" must be a string'
+                            '%s %s "credentialsSecret" must be a string' % [object.GetKind(), object.GetName()]
                     }
             },
         },
@@ -56,7 +71,7 @@ local utils = import 'utils.libsonnet';
                 ignore: if std.objectHas(objectWithIgnore.config, 'ignore') && objectWithIgnore.config.ignore != '' 
                     then objectWithIgnore.config.ignore,
                     assert utils.nullOrIsType(self.ignore, 'boolean') :
-                        '"ignore" must be a string'
+                        '%s %s "ignore" must be a string' % [object.GetKind(), object.GetName()]
             },
         },
 
@@ -69,7 +84,7 @@ local utils = import 'utils.libsonnet';
             },
             spec_+:: {
                 assert utils.notExistsOrType(objectWithSuspend.config, 'suspend', 'boolean') :
-                    '"suspend" must be a boolean value',
+                    '%s %s "suspend" must be a boolean value' % [object.GetKind(), object.GetName()],
                 suspend: if std.objectHas(objectWithSuspend.config, 'suspend') && objectWithSuspend.config.suspend 
                     then objectWithSuspend.config.suspend,                    
             },
@@ -81,18 +96,18 @@ local utils = import 'utils.libsonnet';
         WithLocalSourceRef():: object {
             local withSourceRef = self,
 
-            sourceRef:: error 'must provide a source reference with sourceRef::',
+            sourceRef:: error 'must provide a source reference for %s %s with sourceRef::' % [object.GetKind(), object.GetName()],
             local ref = withSourceRef.sourceRef,
 
             assert std.type(ref) == 'object' :
-                'sourceRef_ must be an object',
+                '%s %s sourceRef_ must be an object' % [object.GetKind(), object.GetName()],
 
             assert std.objectHas(ref, 'kind') && (
                         std.objectHas(ref, 'name') || (
                             std.objectHas(ref, 'metadata') && std.objectHas(ref.metadata, 'name')
                         )
                    ):
-                'sourceRef_ must have be a reference to an object or have a "name" and "kind"',
+                '%s %s sourceRef_ must have be a reference to an object or have a "name" and "kind"' % [object.GetKind(), object.GetName()],
 
             getName()::
                 if std.objectHas(ref, 'name') then ref.name
@@ -107,22 +122,6 @@ local utils = import 'utils.libsonnet';
                     name: withSourceRef.getName()
                 },
             }
-        },
-
-        // WithNameFromPrivate will look for a private 'name' field
-        // in the object and use that as the name.
-        WithNameFromPrivate():: object {
-            local obj = self,
-            metadata+: {
-                name: obj.name,
-            },
-        },
-
-        // PruneFromPrivateSpec prunes the private spec_ of null or false values and sets
-        // it to the object's spec field.
-        PruneFromPrivateSpec():: object {
-            local obj = self,
-            spec+: std.prune(obj.spec_)
         },
     },
 }
