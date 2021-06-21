@@ -28,7 +28,11 @@ There is a [patch](config/notification-alerts-patch.json) included in this repos
 ```bash
 export VERSION=v0.0.6
 
-kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/${VERSION}/pkg/cmd/manifest.yaml
+# Since version v0.0.6 a bundle manifest is published with every tag release.
+kubectl apply -f https://github.com/pelotech/jsonnet-controller/releases/download/${VERSION}/jsonnet-controller.yaml
+
+# To apply a manifest with the latest changes.
+#   kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/main/pkg/cmd/manifest.yaml
 
 # Apply the patch to the Flux Alerts CRD to allow alerts from Konfigurations.
 # This step is optional, but required for all installation methods at the moment
