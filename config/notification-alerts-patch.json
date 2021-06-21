@@ -1,0 +1,7 @@
+[
+    {
+        "op": "add",
+        "path": "/spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/eventSources/items/properties/kind/enum/-",
+        "value": "Konfiguration"
+    }
+]
