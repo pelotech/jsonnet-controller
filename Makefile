@@ -86,9 +86,10 @@ api-docs: $(REFDOCS)  ## Generate API documentation
 	go mod vendor
 	bash hack/update-api-docs.sh
 
+BUNDLE_OUTPUT ?= pkg/cmd/manifest.yaml
 bundle: ## Generate the bundle manifest
 	$(KUBECFG) show --tla-str version=$(VERSION) \
-		config/jsonnet/jsonnet-controller.jsonnet > pkg/cmd/manifest.yaml
+		config/jsonnet/jsonnet-controller.jsonnet > $(BUNDLE_OUTPUT)
 
 ##@ Deployment
 
