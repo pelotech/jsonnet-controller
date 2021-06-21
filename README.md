@@ -59,7 +59,7 @@ If you have an existing flux2 setup on your cluster, you can add the `jsonnet-co
 flux create source git jsonnet-controller --url=https://github.com/pelotech/jsonnet-controller --branch=main
 
 # Create a Kustomization for the jsonnet-controller. 
-# By default it will install the flux-system namespace.
+# By default it will install to the flux-system namespace.
 # You can set interval and other options as you please.
 flux create kustomization jsonnet-controller \
         --source=GitRepository/jsonnet-controller \
