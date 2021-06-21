@@ -24,28 +24,34 @@ jobs:
         id: version
 
       # Setup QEMU
-      - name: Set up QEMU
+      - name: Setup QEMU
         uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
 
       # Set up a buildx runner
       - name: Set up Docker Buildx
+        id: buildx
         uses: docker/setup-buildx-action@v1
+        with:
+          buildkitd-flags: "--debug"
 
       # Login to the container registry
       - name: Login to Container Registry
         run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
         if: ${{ github.event_name != 'pull_request' }}
 
-      - name: Patch buildx multiarch image
-        run: |
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-          docker buildx create --name multiarch --driver docker-container --use
-          docker buildx inspect --bootstrap
+      # - name: Patch buildx multiarch image
+      #   run: |
+      #     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+      #     docker buildx create --name multiarch --driver docker-container --use
+      #     docker buildx inspect --bootstrap
 
       # Build and push the image
       - name: Build and Push Controller Image
         uses: docker/build-push-action@v2
         with:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
+          builder: ${{ steps.buildx.outputs.name }}
           push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
           tags: ghcr.io/pelotech/jsonnet-controller:${{ steps.version.outputs.tag }}
