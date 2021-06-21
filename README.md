@@ -12,6 +12,15 @@ Kubecfg (and its internal libraries) as well as Tanka-style directories with a `
 
 This project is in very early stages proof-of-concept still. So expect bugs. But please feel free to open an Issue if you spot any :smile:.
 
+- [Quickstart](#quickstart)
+  - [Installing](#installing)
+    - [Kubectl](#using-kubectl)
+    - [Kubecfg](#using-kubecfg)
+    - [CLI](#using-the-konfig-cli)
+    - [Kustomize](#using-kustomize)
+  - [Examples](#examples)
+- [Development](#development)
+
 ## Quickstart
 
 API Documentation is available [here](doc/konfigurations.md#konfigurationspec).
@@ -21,7 +30,22 @@ API Documentation is available [here](doc/konfigurations.md#konfigurationspec).
 There are multiple ways to install the `jsonnet-controller`.
 
 _NOTE: To set up Flux Alerts from Konfigurations you will need to patch the enum in the Alerts CRD.
-There is a [patch](config/notification-alerts-patch.json) included in this repository that can do this for you. You can apply it directly or include it with your `flux bootstrap`._
+There is a [patch](config/notification-alerts-patch.json) included in this repository that can do this for you. You can apply it directly or include the [yaml](config/notification-alerts-patch.yaml) version in `gotk-patch.yaml` with your `flux bootstrap`.
+You can also add something like the following to your cluster's `kustomization.yaml`:_
+
+```yaml
+# ...
+patchesJson6902:
+- target:
+    group: apiextensions.k8s.io
+    version: v1
+    kind: CustomResourceDefinition
+    name: alerts.notification.toolkit.fluxcd.io
+  patch:
+  - op: "add"
+    path: "/spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/eventSources/items/properties/kind/enum/-"
+    value: "Konfiguration"
+```
 
 #### Using `kubectl`
 
