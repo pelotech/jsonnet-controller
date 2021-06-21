@@ -49,18 +49,3 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
           tags: ghcr.io/pelotech/jsonnet-controller:${{ steps.version.outputs.tag }}
-
-      - name: Generate release manifests
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          mkdir -p config/release
-          VERSION=${{ steps.version.outputs.tag }} BUNDLE_OUTPUT=config/release/jsonnet-controller.yaml make bundle
-
-      - name: Publish release manifests
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GHCR_TOKEN }}
-        with:
-          files: |
-            config/release/jsonnet-controller.yaml

@@ -17,10 +17,11 @@ limitations under the License.
 package cmd
 
 import (
-	"bytes"
 	_ "embed"
 	"fmt"
 	"io"
+	"regexp"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -31,24 +32,36 @@ import (
 )
 
 //go:embed manifest.yaml
-var manifest []byte
+var manifest string
+
+// Populated by CI during a release build
+var Version string
 
 var exportInstall bool
 var installNamespace string
+var installVersion string
 
 func init() {
 	installCmd.Flags().BoolVar(&exportInstall, "export", false, "dump installation manifests without installing to the cluster (ignores --namespace)")
 	installCmd.Flags().StringVar(&installNamespace, "namespace", "flux-system", "the namespace to install the jsonnet-controller to")
+	installCmd.Flags().StringVar(&installVersion, "version", Version, "the version of the controller to install")
 
 	rootCmd.AddCommand(installCmd)
 }
+
+var imageRegex = regexp.MustCompile("image: (ghcr.io/pelotech/jsonnet-controller):(latest)")
 
 var installCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Install the jsonnet controller into a cluster",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if !exportInstall {
-			return checkClient()
+			if err := checkClient(); err != nil {
+				return err
+			}
+		}
+		if installVersion != "" {
+			manifest = imageRegex.ReplaceAllString(manifest, fmt.Sprintf("image: $1:%s", installVersion))
 		}
 		return nil
 	},
@@ -57,7 +70,7 @@ var installCmd = &cobra.Command{
 			fmt.Println(string(manifest))
 			return nil
 		}
-		reader := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 2048)
+		reader := yaml.NewYAMLOrJSONDecoder(strings.NewReader(manifest), 2048)
 		for {
 			toCreate := &unstructured.Unstructured{}
 			err := reader.Decode(&toCreate)

@@ -3,7 +3,7 @@ on:
     tags:
       - 'v*'
 
-name: Konfig Release
+name: Konfig Release and Manifests
 
 jobs:
   release:
@@ -23,8 +23,20 @@ jobs:
       - name: Install upx
         run: sudo apt-get install -y upx
 
-      - name: Build Release
+      - name: Get Version
+        shell: bash
+        run: |
+          echo ::set-output name=tag::$(echo ${GITHUB_REF##*/})
+        id: version
+
+      - name: Build CLI Release
         run: make dist-konfig
+
+      - name: Generate Release Manifests
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir -p config/release
+          VERSION=${{ steps.version.outputs.tag }} BUNDLE_OUTPUT=config/release/jsonnet-controller.yaml make bundle
 
       - name: Publish Artifacts
         uses: softprops/action-gh-release@v1
@@ -33,3 +45,4 @@ jobs:
         with:
           files: |
             dist/*
+            config/release/jsonnet-controller.yaml
