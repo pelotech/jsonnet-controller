@@ -34,17 +34,19 @@ There is a [patch](config/notification-alerts-patch.json) included in this repos
 You can also add something like the following to your cluster's `kustomization.yaml`:_
 
 ```yaml
-# ...
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- gotk-components.yaml
+- gotk-sync.yaml
 patchesJson6902:
 - target:
     group: apiextensions.k8s.io
     version: v1
     kind: CustomResourceDefinition
     name: alerts.notification.toolkit.fluxcd.io
-  patch:
-  - op: "add"
-    path: "/spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/eventSources/items/properties/kind/enum/-"
-    value: "Konfiguration"
+  path: 'alerts-crd-patch.yaml' # The downloaded patch in your flux repository
+
 ```
 
 #### Using `kubectl`
