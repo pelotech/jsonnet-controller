@@ -8,8 +8,8 @@ local default_interval = '5m';
     // https://fluxcd.io/docs/components/source/gitrepositories
     GitRepository(url, interval=default_interval):: 
         flux.Object('source', 'GitRepository', '')
-        .WithNameFromPrivate()
         .WithIntervalAndTimeout(interval)
+        .WithNameFromPrivate()
         .WithCredentials()
         .WithIgnore()
         .WithSuspend()
@@ -76,8 +76,8 @@ local default_interval = '5m';
     // https://fluxcd.io/docs/components/source/buckets
     Bucket(bucketName, endpoint="s3.amazonaws.com", interval=default_interval):: 
         flux.Object('source', 'Bucket', '')
-        .WithNameFromPrivate()
         .WithIntervalAndTimeout(interval)
+        .WithNameFromPrivate()
         .WithCredentials()
         .WithIgnore()
         .WithSuspend()
@@ -113,8 +113,8 @@ local default_interval = '5m';
     // https://fluxcd.io/docs/components/source/helmrepositories
     HelmRepository(url, interval=default_interval):: 
         flux.Object('source', 'HelmRepository', '')
-        .WithNameFromPrivate()
         .WithIntervalAndTimeout(interval)
+        .WithNameFromPrivate()
         .WithCredentials()
         .WithSuspend()
         .PruneFromPrivateSpec() 
@@ -141,8 +141,8 @@ local default_interval = '5m';
     // https://fluxcd.io/docs/components/source/helmcharts
     HelmChart(chart, interval=default_interval):: 
         flux.Object('source', 'HelmChart', '')
-        .WithNameFromPrivate()
         .WithIntervalAndTimeout(interval)
+        .WithNameFromPrivate()
         .WithSuspend()
         .PruneFromPrivateSpec() 
         .WithLocalSourceRef()
@@ -150,5 +150,24 @@ local default_interval = '5m';
         local helmchart = self,
 
         name:: chart,
+
+        config+:: {
+            version: '',
+            valuesFiles: []
+        },
+
+        spec_+:: {
+            local config = helmchart.config,
+
+            chart: chart,
+            
+            version: if std.objectHas(config, 'version') && config.version != '' then config.version,
+            assert utils.nullOrIsType(self.version, 'string') :
+                '"version" must be a string',
+
+            valuesFiles: if std.objectHas(config, 'valuesFiles') && config.valuesFiles != [] then config.valuesFiles,
+            assert utils.nullOrIsType(self.valuesFiles, 'array') :
+                '"valuesFiles" must be an array of strings',
+        },
     }
 }
