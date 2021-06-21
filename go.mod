@@ -25,5 +25,5 @@ require (
 	k8s.io/gengo v0.0.0-20210203185629-de9496dff47b
 	k8s.io/klog v1.0.0
 	sigs.k8s.io/cli-utils v0.25.1-0.20210608181808-f3974341173a
-	sigs.k8s.io/controller-runtime v0.9.0
+	sigs.k8s.io/controller-runtime v0.9.1
 )
