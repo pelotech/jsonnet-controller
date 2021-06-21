@@ -3,7 +3,7 @@ on:
     tags:
       - 'v*'
 
-name: Konfig Release and Manifests
+name: CLI and Manifests Release
 
 jobs:
   release:

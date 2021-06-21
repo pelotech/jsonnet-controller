@@ -1,9 +1,9 @@
-name: Build Images
+name: Build
 
 on:
-  create:
-    tags:
   push:
+    tags:
+      - 'v*'
     branches: [ main ]
 
 jobs:
