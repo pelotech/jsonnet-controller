@@ -26,7 +26,7 @@ There is a [patch](config/notification-alerts-patch.json) included in this repos
 #### Using `kubectl`
 
 ```bash
-VERSION=v0.0.6
+export VERSION=v0.0.6
 
 kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/${VERSION}/pkg/cmd/manifest.yaml
 
