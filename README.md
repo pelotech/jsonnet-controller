@@ -20,12 +20,21 @@ API Documentation is available [here](doc/konfigurations.md#konfigurationspec).
 
 There are multiple ways to install the `jsonnet-controller`.
 
+_NOTE: To set up Flux Alerts from Konfigurations you will need to patch the enum in the Alerts CRD.
+There is a [patch](config/notification-alerts-patch.json) included in this repository that can do this for you. You can apply it directly or include it with your `flux bootstrap`._
+
 #### Using `kubectl`
 
 ```bash
-VERSION=v0.0.5
+VERSION=v0.0.6
 
 kubectl apply -f https://github.com/pelotech/jsonnet-controller/raw/${VERSION}/pkg/cmd/manifest.yaml
+
+# Apply the patch to the Flux Alerts CRD to allow alerts from Konfigurations.
+# This step is optional, but required for all installation methods at the moment
+# if desired.
+kubectl patch crd alerts.notification.toolkit.fluxcd.io --type json \
+  --patch-file <(curl -sL https://github.com/pelotech/jsonnet-controller/raw/main/config/notification-alerts-patch.json)
 ```
 
 You can also use the manifest from the `main` branch to deploy the `latest` tag.
