@@ -41,12 +41,6 @@ jobs:
         run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
         if: ${{ github.event_name != 'pull_request' }}
 
-      # - name: Patch buildx multiarch image
-      #   run: |
-      #     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-      #     docker buildx create --name multiarch --driver docker-container --use
-      #     docker buildx inspect --bootstrap
-
       # Build and push the image
       - name: Build and Push Controller Image
         uses: docker/build-push-action@v2

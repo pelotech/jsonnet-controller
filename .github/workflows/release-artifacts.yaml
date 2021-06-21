@@ -30,7 +30,7 @@ jobs:
         id: version
 
       - name: Build CLI Release
-        run: make dist-konfig
+        run: make LDFLAGS="-s -w -X github.com/pelotech/jsonnet-controller/pkg/cmd.Version=${{ steps.version.outputs.tag }}" dist-konfig
 
       - name: Generate Release Manifests
         run: |

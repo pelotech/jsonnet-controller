@@ -78,19 +78,6 @@ docker-build: test ## Build docker image with the manager.
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
-REFDOCS = $(CURDIR)/bin/refdocs
-$(REFDOCS):
-	cd hack/gen-crd-reference-docs && go build -o $(REFDOCS) .
-
-api-docs: $(REFDOCS)  ## Generate API documentation
-	go mod vendor
-	bash hack/update-api-docs.sh
-
-BUNDLE_OUTPUT ?= pkg/cmd/manifest.yaml
-bundle: ## Generate the bundle manifest
-	$(KUBECFG) show --tla-str version=$(VERSION) \
-		config/jsonnet/jsonnet-controller.jsonnet > $(BUNDLE_OUTPUT)
-
 ##@ Deployment
 
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
@@ -150,6 +137,7 @@ $(FLUX):
 
 KUBECFG         ?= bin/kubecfg
 KUBECFG_VERSION ?= v0.20.0
+
 $(KUBECFG):
 	mkdir -p "$(BIN_DIR)"
 	curl -JL -o "$(KUBECFG)" https://github.com/bitnami/kubecfg/releases/download/$(KUBECFG_VERSION)/kubecfg-$(shell uname | tr A-Z a-z)-amd64
@@ -215,3 +203,18 @@ dist-konfig: $(GOX)  ## Build release artifacts for the CLI
 	cd cmd/konfig && \
 		CGO_ENABLED=0 $(GOX) -osarch=$(COMPILE_TARGETS) -output=$(COMPILE_OUTPUT) -ldflags="$(LDFLAGS)"
 	upx -9 $(DIST)/*
+
+##@ Documentation and Bundles
+
+REFDOCS = $(CURDIR)/bin/refdocs
+$(REFDOCS):
+	cd hack/gen-crd-reference-docs && go build -o $(REFDOCS) .
+
+api-docs: $(REFDOCS)  ## Generate API documentation
+	go mod vendor
+	bash hack/update-api-docs.sh
+
+BUNDLE_OUTPUT ?= pkg/cmd/manifest.yaml
+bundle: $(KUBECFG) ## Generate the bundle manifest
+	$(KUBECFG) show --tla-str version=$(VERSION) \
+		config/jsonnet/jsonnet-controller.jsonnet > $(BUNDLE_OUTPUT)
