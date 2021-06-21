@@ -14,6 +14,7 @@ This project is in very early stages proof-of-concept still. So expect bugs. But
 
 - [Quickstart](#quickstart)
   - [Installing](#installing)
+    - [Flux2](#using-flux)
     - [Kubectl](#using-kubectl)
     - [Kubecfg](#using-kubecfg)
     - [CLI](#using-the-konfig-cli)
@@ -48,6 +49,27 @@ patchesJson6902:
   path: 'alerts-crd-patch.yaml' # The downloaded patch in your flux repository
 
 ```
+
+#### Using Flux
+
+If you have an existing flux2 setup on your cluster, you can add the `jsonnet-controller` to the Flux control-plane easily with the following commands:
+
+```bash
+# Create a GitRepository source for this repository
+flux create source git jsonnet-controller --url=https://github.com/pelotech/jsonnet-controller --branch=main
+
+# Create a Kustomization for the jsonnet-controller. 
+# By default it will install the flux-system namespace.
+# You can set interval and other options as you please.
+flux create kustomization jsonnet-controller \
+        --source=GitRepository/jsonnet-controller \
+        --path="./config/default" \
+        --prune=true \
+        --interval=5m \
+        --validation=client
+```
+
+You may want to patch the output to pin the image at a specific version. The kustomize manifests in the repository point at `latest`.
 
 #### Using `kubectl`
 
