@@ -53,18 +53,18 @@ konfig install
 
 Use the `--kubeconfig` flag to specify a kubeconfig different then `~/.kube/config`.
 
-#### Using [`kustomize`](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/)
+#### Using `kustomize`
 
 Kubebuilder generates `kustomize` manifests with the project. You can use them by cloning the repository down and executing the following:
 
 ```bash
 git clone https://github.com/pelotech/jsonnet-controller && cd jsonnet-controller
 
-cd config/manager
+cd config/default
 ## This is the current value, but if you want to change the image
-kustomize edit set image controller=ghcr.io/pelotech/jsonnet-controller:latest
+kubectl kustomize edit set image controller=ghcr.io/pelotech/jsonnet-controller:latest
 ## Deploy
-kustomize build . | kubectl apply -f -
+kubectl kustomize | kubectl apply -f -
 ```
 
 Using `kustomize` you will want to tie any additional cluster permissions necessary to the created manager role.

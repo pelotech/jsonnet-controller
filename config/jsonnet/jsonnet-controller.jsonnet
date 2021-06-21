@@ -31,6 +31,9 @@ function(version='v0.0.5') {
     // Set to false to skip rendering CRDs
     install_crds:: true,
 
+    // Set to null to not forward events to a flux notification controller.
+    notification_controller_addr:: 'http://notification-controller/',
+
     crds: if this.install_crds then [
         kubecfg.parseYaml(importstr '../crd/bases/jsonnet.io_konfigurations.yaml'),
     ] else null,
@@ -151,7 +154,9 @@ function(version='v0.0.5') {
                             image: this.manager_image,
                             imagePullPolicy: this.manager_pull_policy,
                             command: ['/manager'],
-                            args: [ '--leader-elect' ],
+                            args: [ '--leader-elect' ] + 
+                                if this.notification_controller_addr != null && std.type(this.notification_controller_addr) == 'string'
+                                then ['--events-addr=%s' % this.notification_controller_addr],
                             securityContext: { allowPrivilegeEscalation: false },
                             env_: {
                                 POD_NAMESPACE: { fieldRef: { fieldPath: 'metadata.namespace' } }
