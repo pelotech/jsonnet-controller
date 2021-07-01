@@ -7,7 +7,6 @@ spec:
   prune: true
   path: https://github.com/pelotech/jsonnet-controller/raw/main/config/jsonnet/whoami-tla.jsonnet
   variables:
-    tlaStr:
-      name: 'hello-world'
-    tlaCode:
-      port: '8080'
+    tlaVars:
+      name: hello-world
+      port: 8080

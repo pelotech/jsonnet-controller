@@ -21,6 +21,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/dependency"
 
 	corev1 "k8s.io/api/core/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -141,12 +142,20 @@ type Variables struct {
 	// Values of external variables with values supplied as Jsonnet code.
 	// +optional
 	ExtCode map[string]string `json:"extCode,omitempty"`
-	// Values of top level arguments with string values.
+	// Values for external variables. They will be used as strings or code
+	// depending on the types encountered.
+	// +optional
+	ExtVars *extv1.JSON `json:"extVars,omitempty"`
+	// Values of top-level-arguments with string values.
 	// +optional
 	TLAStr map[string]string `json:"tlaStr,omitempty"`
-	// Values of top level arguments with values supplied as Jsonnet code.
+	// Values of top-level-arguments with values supplied as Jsonnet code.
 	// +optional
 	TLACode map[string]string `json:"tlaCode,omitempty"`
+	// Values for top level arguments. They will be used as strings or code
+	// depending on the types encountered.
+	// +optional
+	TLAVars *extv1.JSON `json:"tlaVars,omitempty"`
 }
 
 // KonfigurationStatus defines the observed state of Konfiguration

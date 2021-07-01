@@ -9,10 +9,11 @@ function(
     pullPolicy='IfNotPresent',
     expose=false,
     hostname='localhost',
-    ingressClass='default') {
+    ingressClass='default',
+    additionalLabels={}) {
     local this = self,
 
-    labels:: { app: name },
+    labels:: { app: name } + additionalLabels,
 
     deployment: kube.Deployment(name + '-deployment') {
         local deployment = self,

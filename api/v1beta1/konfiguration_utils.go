@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -107,8 +108,8 @@ func (k *Konfiguration) GetPath() string { return k.Spec.Path }
 // GetVariables returns the external and top level arguments to pass to kubecfg.
 func (k *Konfiguration) GetVariables() *Variables { return k.Spec.Variables }
 
-// InjectInto will inject the configured variables into the provided vm.
-func (v *Variables) InjectInto(vm *jsonnet.VM) {
+// InjectIntoVM will inject the configured variables into the provided vm.
+func (v *Variables) InjectIntoVM(vm *jsonnet.VM) error {
 	for k, v := range v.ExtStr {
 		vm.ExtVar(k, v)
 	}
@@ -121,6 +122,36 @@ func (v *Variables) InjectInto(vm *jsonnet.VM) {
 	for k, v := range v.TLACode {
 		vm.TLACode(k, v)
 	}
+	if v.ExtVars != nil {
+		var vars map[string]interface{}
+		if err := json.Unmarshal(v.ExtVars.Raw, &vars); err != nil {
+			return err
+		}
+		if err := iterVarsIntoVM(vars, vm.ExtCode); err != nil {
+			return err
+		}
+	}
+	if v.TLAVars != nil {
+		var vars map[string]interface{}
+		if err := json.Unmarshal(v.TLAVars.Raw, &vars); err != nil {
+			return err
+		}
+		if err := iterVarsIntoVM(vars, vm.TLACode); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func iterVarsIntoVM(vars map[string]interface{}, codeFunc func(string, string)) error {
+	for k, v := range vars {
+		j, err := json.Marshal(v)
+		if err != nil {
+			return err
+		}
+		codeFunc(k, string(j))
+	}
+	return nil
 }
 
 // GetInjectSnippet returns any configured jsonnet snippet to add to the end of the execution.

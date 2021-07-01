@@ -224,17 +224,25 @@ spec:
                       type: string
                     description: Values of external variables with string values.
                     type: object
+                  extVars:
+                    description: Values for external variables. They will be used
+                      as strings or code depending on the types encountered.
+                    x-kubernetes-preserve-unknown-fields: true
                   tlaCode:
                     additionalProperties:
                       type: string
-                    description: Values of top level arguments with values supplied
+                    description: Values of top-level-arguments with values supplied
                       as Jsonnet code.
                     type: object
                   tlaStr:
                     additionalProperties:
                       type: string
-                    description: Values of top level arguments with string values.
+                    description: Values of top-level-arguments with string values.
                     type: object
+                  tlaVars:
+                    description: Values for top level arguments. They will be used
+                      as strings or code depending on the types encountered.
+                    x-kubernetes-preserve-unknown-fields: true
                 type: object
             required:
             - interval

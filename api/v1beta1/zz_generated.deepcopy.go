@@ -23,6 +23,7 @@ package v1beta1
 import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/dependency"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -266,6 +267,11 @@ func (in *Variables) DeepCopyInto(out *Variables) {
 			(*out)[key] = val
 		}
 	}
+	if in.ExtVars != nil {
+		in, out := &in.ExtVars, &out.ExtVars
+		*out = new(apiextensionsv1.JSON)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.TLAStr != nil {
 		in, out := &in.TLAStr, &out.TLAStr
 		*out = make(map[string]string, len(*in))
@@ -279,6 +285,11 @@ func (in *Variables) DeepCopyInto(out *Variables) {
 		for key, val := range *in {
 			(*out)[key] = val
 		}
+	}
+	if in.TLAVars != nil {
+		in, out := &in.TLAVars, &out.TLAVars
+		*out = new(apiextensionsv1.JSON)
+		(*in).DeepCopyInto(*out)
 	}
 }
 
