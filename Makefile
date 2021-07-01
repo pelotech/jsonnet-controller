@@ -208,7 +208,7 @@ dist-konfig: $(GOX)  ## Build release artifacts for the CLI
 
 REFDOCS = $(CURDIR)/bin/refdocs
 $(REFDOCS):
-	cd hack/gen-crd-reference-docs && go build -o $(REFDOCS) .
+	cd hack/gen-crd-reference-docs && GO111MODULE=off go build -o $(REFDOCS) .
 
 api-docs: $(REFDOCS)  ## Generate API documentation
 	go mod vendor

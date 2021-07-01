@@ -1,4 +1,133 @@
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller
+  namespace: flux-system
+spec:
+  minReadySeconds: 30
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: jsonnet-controller
+      control_plane: manager
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: jsonnet-controller
+        control_plane: manager
+    spec:
+      containers:
+      - args:
+        - --leader-elect
+        - --events-addr=http://notification-controller/
+        command:
+        - /manager
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: ghcr.io/pelotech/jsonnet-controller:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: http
+        - containerPort: 8080
+          name: metrics
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        stdin: false
+        tty: false
+        volumeMounts:
+        - mountPath: /cache
+          name: manager-cache
+        - mountPath: /tmp
+          name: manager-tmp
+      imagePullSecrets: []
+      initContainers: []
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: jsonnet-controller-sa
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: manager-cache
+      - emptyDir: {}
+        name: manager-tmp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations: {}
+  labels:
+    app: jsonnet-controller
+    control_plane: manager
+  name: jsonnet-controller-leader-election-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -103,47 +232,6 @@ subjects:
 - kind: ServiceAccount
   name: jsonnet-controller-sa
   namespace: flux-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
-  name: jsonnet-controller-leader-election-role
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - leases
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
 ---
 apiVersion: v1
 kind: Service
@@ -391,17 +479,25 @@ spec:
                       type: string
                     description: Values of external variables with string values.
                     type: object
+                  extVars:
+                    description: Values for external variables. They will be used
+                      as strings or code depending on the types encountered.
+                    x-kubernetes-preserve-unknown-fields: true
                   tlaCode:
                     additionalProperties:
                       type: string
-                    description: Values of top level arguments with values supplied
+                    description: Values of top-level-arguments with values supplied
                       as Jsonnet code.
                     type: object
                   tlaStr:
                     additionalProperties:
                       type: string
-                    description: Values of top level arguments with string values.
+                    description: Values of top-level-arguments with string values.
                     type: object
+                  tlaVars:
+                    description: Values for top level arguments. They will be used
+                      as strings or code depending on the types encountered.
+                    x-kubernetes-preserve-unknown-fields: true
                 type: object
             required:
             - interval
@@ -533,91 +629,3 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  annotations: {}
-  labels:
-    app: jsonnet-controller
-    control_plane: manager
-  name: jsonnet-controller
-  namespace: flux-system
-spec:
-  minReadySeconds: 30
-  replicas: 1
-  revisionHistoryLimit: 10
-  selector:
-    matchLabels:
-      app: jsonnet-controller
-      control_plane: manager
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
-  template:
-    metadata:
-      annotations: {}
-      labels:
-        app: jsonnet-controller
-        control_plane: manager
-    spec:
-      containers:
-      - args:
-        - --leader-elect
-        - --events-addr=http://notification-controller/
-        command:
-        - /manager
-        env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        image: ghcr.io/pelotech/jsonnet-controller:latest
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
-          initialDelaySeconds: 15
-          periodSeconds: 20
-        name: manager
-        ports:
-        - containerPort: 9443
-          name: http
-        - containerPort: 8080
-          name: metrics
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 100m
-            memory: 64Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-        stdin: false
-        tty: false
-        volumeMounts:
-        - mountPath: /cache
-          name: manager-cache
-        - mountPath: /tmp
-          name: manager-tmp
-      imagePullSecrets: []
-      initContainers: []
-      securityContext:
-        runAsNonRoot: true
-      serviceAccountName: jsonnet-controller-sa
-      terminationGracePeriodSeconds: 10
-      volumes:
-      - emptyDir: {}
-        name: manager-cache
-      - emptyDir: {}
-        name: manager-tmp

@@ -483,20 +483,32 @@ arguments.
 <p>Values of external variables with values supplied as Jsonnet code.</p></td>
 </tr>
 <tr class="odd">
+<td><code>extVars</code><br />
+<em>k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON</em></td>
+<td><em>(Optional)</em>
+<p>Values for external variables. They will be used as strings or code depending on the types encountered.</p></td>
+</tr>
+<tr class="even">
 <td><code>tlaStr</code><br />
 <em>map[string]string</em></td>
 <td><em>(Optional)</em>
-<p>Values of top level arguments with string values.</p></td>
+<p>Values of top-level-arguments with string values.</p></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>tlaCode</code><br />
 <em>map[string]string</em></td>
 <td><em>(Optional)</em>
-<p>Values of top level arguments with values supplied as Jsonnet code.</p></td>
+<p>Values of top-level-arguments with values supplied as Jsonnet code.</p></td>
+</tr>
+<tr class="even">
+<td><code>tlaVars</code><br />
+<em>k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON</em></td>
+<td><em>(Optional)</em>
+<p>Values for top level arguments. They will be used as strings or code depending on the types encountered.</p></td>
 </tr>
 </tbody>
 </table>
 
 ------------------------------------------------------------------------
 
-*Generated with `gen-crd-api-reference-docs` on git commit `90d4d40`.*
+*Generated with `gen-crd-api-reference-docs` on git commit `03dee2e`.*
