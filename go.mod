@@ -6,10 +6,10 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/evanphx/json-patch v4.11.0+incompatible
-	github.com/fluxcd/pkg/apis/meta v0.10.0
-	github.com/fluxcd/pkg/runtime v0.12.0
+	github.com/fluxcd/pkg/apis/meta v0.10.1
+	github.com/fluxcd/pkg/runtime v0.12.1
 	github.com/fluxcd/pkg/untar v0.1.0
-	github.com/fluxcd/source-controller/api v0.15.2
+	github.com/fluxcd/source-controller/api v0.15.3
 	github.com/go-logr/logr v0.4.0
 	github.com/google/go-jsonnet v0.17.0
 	github.com/hashicorp/go-retryablehttp v0.7.0
