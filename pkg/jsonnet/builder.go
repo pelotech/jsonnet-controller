@@ -99,7 +99,9 @@ func NewBuilder(konfig *konfigurationv1.Konfiguration, workdir, cacheDir string)
 
 		// Inject any variables into the VM
 		if vars := konfig.GetVariables(); vars != nil {
-			vars.InjectIntoVM(b.vm)
+			if err := vars.InjectIntoVM(b.vm); err != nil {
+				return nil, err
+			}
 		}
 
 	}
