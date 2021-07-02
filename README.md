@@ -74,9 +74,8 @@ You may want to patch the output to pin the image at a specific version. The kus
 #### Using `kubectl`
 
 ```bash
-export VERSION=v0.0.6
+export VERSION=v0.0.9
 
-# Since version v0.0.6 a bundle manifest is published with every tag release.
 kubectl apply -f https://github.com/pelotech/jsonnet-controller/releases/download/${VERSION}/jsonnet-controller.yaml
 
 # To apply a manifest with the latest changes.
