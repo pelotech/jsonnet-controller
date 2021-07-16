@@ -19,9 +19,9 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/spf13/cobra v1.2.1
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.21.2
+	k8s.io/api v0.21.3
 	k8s.io/apiextensions-apiserver v0.21.2
-	k8s.io/apimachinery v0.21.2
+	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.2
 	k8s.io/gengo v0.0.0-20210203185629-de9496dff47b
 	k8s.io/klog v1.0.0
