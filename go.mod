@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
-	github.com/cyphar/filepath-securejoin v0.2.2
+	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/davecgh/go-spew v1.1.1
 	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/fluxcd/pkg/apis/meta v0.10.1
@@ -15,10 +15,10 @@ require (
 	github.com/google/go-jsonnet v0.17.0
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.13.0
+	github.com/onsi/gomega v1.14.0
 	github.com/pkg/errors v0.9.1
 	github.com/russross/blackfriday/v2 v2.1.0
-	github.com/spf13/cobra v1.2.0
+	github.com/spf13/cobra v1.2.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	helm.sh/helm/v3 v3.6.3
