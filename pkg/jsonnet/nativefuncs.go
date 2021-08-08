@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	jsonnet "github.com/google/go-jsonnet"
-	jsonnetAst "github.com/google/go-jsonnet/ast"
+	"github.com/google/go-jsonnet/ast"
 	goyaml "gopkg.in/yaml.v2"
 
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -33,11 +33,14 @@ import (
 // registerNativeFuncs adds kubecfg's native jsonnet functions to the provided VM
 func registerNativeFuncs(vm *jsonnet.VM) {
 
+	// Helm Template
+	vm.NativeFunction(helmTemplateNativeFunc())
+
 	// JSON/YAML Parsing
 
 	vm.NativeFunction(&jsonnet.NativeFunction{
 		Name:   "parseYaml",
-		Params: []jsonnetAst.Identifier{"yaml"},
+		Params: []ast.Identifier{"yaml"},
 		Func: func(args []interface{}) (res interface{}, err error) {
 			ret := []interface{}{}
 			data := []byte(args[0].(string))
@@ -58,7 +61,7 @@ func registerNativeFuncs(vm *jsonnet.VM) {
 
 	vm.NativeFunction(&jsonnet.NativeFunction{
 		Name:   "manifestJson",
-		Params: []jsonnetAst.Identifier{"json", "indent"},
+		Params: []ast.Identifier{"json", "indent"},
 		Func: func(args []interface{}) (res interface{}, err error) {
 			value := args[0]
 			indent := int(args[1].(float64))
@@ -73,7 +76,7 @@ func registerNativeFuncs(vm *jsonnet.VM) {
 
 	vm.NativeFunction(&jsonnet.NativeFunction{
 		Name:   "manifestYaml",
-		Params: []jsonnetAst.Identifier{"json"},
+		Params: []ast.Identifier{"json"},
 		Func: func(args []interface{}) (res interface{}, err error) {
 			value := args[0]
 			output, err := goyaml.Marshal(value)
@@ -85,7 +88,7 @@ func registerNativeFuncs(vm *jsonnet.VM) {
 
 	vm.NativeFunction(&jsonnet.NativeFunction{
 		Name:   "escapeStringRegex",
-		Params: []jsonnetAst.Identifier{"str"},
+		Params: []ast.Identifier{"str"},
 		Func: func(args []interface{}) (res interface{}, err error) {
 			return regexp.QuoteMeta(args[0].(string)), nil
 		},
@@ -93,7 +96,7 @@ func registerNativeFuncs(vm *jsonnet.VM) {
 
 	vm.NativeFunction(&jsonnet.NativeFunction{
 		Name:   "regexMatch",
-		Params: []jsonnetAst.Identifier{"regex", "string"},
+		Params: []ast.Identifier{"regex", "string"},
 		Func: func(args []interface{}) (res interface{}, err error) {
 			return regexp.MatchString(args[0].(string), args[1].(string))
 		},
@@ -101,7 +104,7 @@ func registerNativeFuncs(vm *jsonnet.VM) {
 
 	vm.NativeFunction(&jsonnet.NativeFunction{
 		Name:   "regexSubst",
-		Params: []jsonnetAst.Identifier{"regex", "src", "repl"},
+		Params: []ast.Identifier{"regex", "src", "repl"},
 		Func: func(args []interface{}) (res interface{}, err error) {
 			regex := args[0].(string)
 			src := args[1].(string)

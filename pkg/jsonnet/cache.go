@@ -61,6 +61,9 @@ func (h *httpCache) getLocalPath(url string) string {
 }
 
 func (h *httpCache) tryLocalCache(url string) (jsonnet.Contents, error) {
+	if h.cacheDir == "" {
+		return jsonnet.Contents{}, errors.New("cache is disabled")
+	}
 	localPath := h.getLocalPath(url)
 	bytes, err := ioutil.ReadFile(localPath)
 	if err != nil {
@@ -70,6 +73,9 @@ func (h *httpCache) tryLocalCache(url string) (jsonnet.Contents, error) {
 }
 
 func (h *httpCache) writeToCache(url string, contents []byte) error {
+	if h.cacheDir == "" {
+		return nil
+	}
 	localPath := h.getLocalPath(url)
 	localPathDir := filepath.Dir(localPath)
 	finfo, err := os.Stat(localPathDir)

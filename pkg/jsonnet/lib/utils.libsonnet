@@ -13,4 +13,8 @@
     // Returns if the object has a key and it is the given type.
     notExistsOrType(object, key, type)::
         !std.objectHas(object, key) || std.type(object[key]) == type,
+
+    // go-jsonnet is not behaving correctly when passed a map[string]interface{}
+    // so the helmTemplate function returns json that gets parsed back to objects
+    helmTemplate(name, chart, opts):: std.parseJson(std.native('helmTemplate')(name, chart, opts)),
 }

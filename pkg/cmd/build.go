@@ -39,7 +39,7 @@ var localAddr string
 
 var buildCmd = &cobra.Command{
 	Use:   "build [PATH]",
-	Short: "Evaluate what a given Konfiguration manifest would produce",
+	Short: "Evaluate what a given Konfiguration manifest would produce from the controller",
 	Args:  cobra.MaximumNArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if err := checkClient(); err != nil {
