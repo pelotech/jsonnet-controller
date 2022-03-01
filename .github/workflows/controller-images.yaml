@@ -14,7 +14,7 @@ jobs:
     steps:
       # Check out code
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # Determine tag we will use for images
       - name: Get image version
