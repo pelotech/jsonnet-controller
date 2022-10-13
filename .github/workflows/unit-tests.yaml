@@ -25,7 +25,7 @@ jobs:
 
     # Set up Go pkg cache
     - name: Cache Go Packages and controller-util Binaries
-      uses: actions/cache@v2
+      uses: actions/cache@v3.0.11
       with:
         path: |
           ~/.cache/go-build
